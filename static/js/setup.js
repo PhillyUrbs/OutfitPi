@@ -101,6 +101,25 @@
 
   $('#loc-auto').addEventListener('change', (e) => {
     $('#loc-manual').style.opacity = e.target.checked ? '0.4' : '1';
+    $('#loc-zip-block').style.opacity = e.target.checked ? '0.4' : '1';
+  });
+
+  $('#lookup-zip').addEventListener('click', async () => {
+    const r = $('#location-result');
+    const zip = $('#loc-zip').value.trim();
+    const country = $('#loc-country').value;
+    if (!zip) { r.textContent = 'Enter a postal code first.'; return; }
+    r.textContent = 'Looking up…';
+    try {
+      const resp = await fetch(`/api/geocode/zip?country=${encodeURIComponent(country)}&zip=${encodeURIComponent(zip)}`);
+      const j = await resp.json();
+      if (!resp.ok) throw new Error(j.error || 'Lookup failed');
+      $('#loc-lat').value = j.latitude;
+      $('#loc-lon').value = j.longitude;
+      r.textContent = `Found: ${j.city || ''}${j.region ? ', ' + j.region : ''} (${j.latitude}, ${j.longitude})`;
+    } catch (e) {
+      r.textContent = e.message;
+    }
   });
 
   $('#test-location').addEventListener('click', async () => {
@@ -160,6 +179,9 @@
     };
 
     try {
+      const btn = $('#save-btn');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
       const resp = await fetch('/api/setup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
@@ -173,6 +195,7 @@
       setTimeout(() => poll(target, 0), (j.delay || 2) * 1000);
     } catch (e) {
       const er = $('#setup-error'); er.textContent = e.message; er.hidden = false;
+      const btn = $('#save-btn'); btn.disabled = false; btn.textContent = 'Save & Start';
     }
   });
 

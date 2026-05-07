@@ -40,6 +40,7 @@ from outfitpi.config_manager import (
 from outfitpi.location import (
     LocationError,
     LocationNotConfiguredError,
+    geocode_zip,
     get_location,
 )
 from outfitpi.location import (
@@ -250,6 +251,26 @@ def create_app(config_path: Path | None = None) -> Flask:
         return jsonify({"ok": False, "message": msg}), 500
 
     # ── Routes: utility ──────────────────────────────────────────────────
+    @app.get("/api/geocode/zip")
+    def api_geocode_zip():
+        country = request.args.get("country", "us")
+        zip_code = request.args.get("zip", "").strip()
+        if not zip_code:
+            return jsonify({"error": "zip parameter required"}), 400
+        try:
+            loc = geocode_zip(country, zip_code)
+        except LocationError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify(
+            {
+                "latitude": loc.latitude,
+                "longitude": loc.longitude,
+                "city": loc.city,
+                "region": loc.region,
+                "country": loc.country,
+            }
+        )
+
     @app.get("/api/network-info")
     def api_network_info():
         cfg = load_config(cfg_path) if config_exists(cfg_path) else Config()

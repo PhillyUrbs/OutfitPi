@@ -43,8 +43,30 @@
     <fieldset>
       <legend>Location</legend>
       <p id="loc-display" class="hint"></p>
-      <label>Latitude <input type="text" inputmode="decimal" id="loc-lat"></label>
-      <label>Longitude <input type="text" inputmode="decimal" id="loc-lon"></label>
+      <label>Postal / ZIP code
+        <input type="text" inputmode="text" id="loc-zip" placeholder="e.g. 19468" autocomplete="postal-code">
+      </label>
+      <label>Country
+        <select id="loc-country">
+          <option value="us" selected>United States</option>
+          <option value="ca">Canada</option>
+          <option value="gb">United Kingdom</option>
+          <option value="de">Germany</option>
+          <option value="fr">France</option>
+          <option value="au">Australia</option>
+          <option value="nl">Netherlands</option>
+          <option value="es">Spain</option>
+          <option value="it">Italy</option>
+          <option value="mx">Mexico</option>
+        </select>
+      </label>
+      <button type="button" class="secondary" id="lookup-zip">Look up ZIP</button>
+      <p id="zip-result" class="hint"></p>
+      <details>
+        <summary>Coordinates</summary>
+        <label>Latitude <input type="text" inputmode="decimal" id="loc-lat"></label>
+        <label>Longitude <input type="text" inputmode="decimal" id="loc-lon"></label>
+      </details>
       <label class="big-toggle"><input type="checkbox" id="loc-auto"> Auto-detect from IP (opt-in)</label>
       <button type="button" class="secondary" id="redetect">Re-detect</button>
     </fieldset>
@@ -98,6 +120,8 @@
     <p id="settings-error" class="error" hidden></p>
     <p id="settings-ok" class="ok" hidden>Saved.</p>
   </main>
+
+  <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
 
   <div id="keyboard-container" class="keyboard-container" hidden>
     <div class="simple-keyboard"></div>

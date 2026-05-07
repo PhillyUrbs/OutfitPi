@@ -115,8 +115,17 @@
       const r = await fetch('/api/update/check');
       const j = await r.json();
       if (j.available) $('update-badge').hidden = false;
+      // If the running version differs from the page we loaded, the server
+      // was updated underneath us — reload to pick up new HTML/JS/CSS.
+      const pageVersion = document.body.dataset.appVersion;
+      if (pageVersion && j.current_version && j.current_version !== pageVersion) {
+        window.location.reload();
+      }
     } catch {}
   }
+
+  // Re-check for version drift every 5 minutes.
+  setInterval(checkUpdate, 5 * 60 * 1000);
 
   document.addEventListener('click', (e) => {
     if (e.target.closest('#settings-btn')) return;

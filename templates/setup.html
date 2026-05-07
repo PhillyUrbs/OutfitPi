@@ -35,10 +35,33 @@
       <p class="disclosure">
         Auto-detect uses <code>ip-api.com</code> over unencrypted HTTP. Result is cached on this device. No login required.
       </p>
-      <div id="loc-manual">
-        <label>Latitude <input type="text" inputmode="decimal" id="loc-lat" placeholder="e.g. 39.95"></label>
-        <label>Longitude <input type="text" inputmode="decimal" id="loc-lon" placeholder="e.g. -75.16"></label>
+      <div id="loc-zip-block">
+        <label>Postal / ZIP code
+          <input type="text" inputmode="text" id="loc-zip" placeholder="e.g. 19468" autocomplete="postal-code">
+        </label>
+        <label>Country
+          <select id="loc-country">
+            <option value="us" selected>United States</option>
+            <option value="ca">Canada</option>
+            <option value="gb">United Kingdom</option>
+            <option value="de">Germany</option>
+            <option value="fr">France</option>
+            <option value="au">Australia</option>
+            <option value="nl">Netherlands</option>
+            <option value="es">Spain</option>
+            <option value="it">Italy</option>
+            <option value="mx">Mexico</option>
+          </select>
+        </label>
+        <button type="button" class="secondary" id="lookup-zip">Look up ZIP</button>
       </div>
+      <details>
+        <summary>Or enter coordinates manually</summary>
+        <div id="loc-manual">
+          <label>Latitude <input type="text" inputmode="decimal" id="loc-lat" placeholder="e.g. 39.95"></label>
+          <label>Longitude <input type="text" inputmode="decimal" id="loc-lon" placeholder="e.g. -75.16"></label>
+        </div>
+      </details>
       <button type="button" class="secondary" id="test-location">Test my location</button>
       <p id="location-result" class="result"></p>
     </section>

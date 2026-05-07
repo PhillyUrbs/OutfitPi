@@ -8,7 +8,7 @@
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="loading">
+<body class="loading" data-app-version="{{ app_version }}">
   <header class="topbar">
     <h1 class="brand">OutfitPi</h1>
     <a href="/settings" class="icon-btn" id="settings-btn" aria-label="Settings">

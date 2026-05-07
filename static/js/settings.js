@@ -5,6 +5,17 @@
 
   const $ = (id) => document.getElementById(id);
 
+  let toastTimer = null;
+  function toast(msg, kind = 'ok') {
+    const t = $('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.className = 'toast toast-' + kind;
+    t.hidden = false;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; }, 3000);
+  }
+
   function renderChildren() {
     const list = $('children-list');
     list.innerHTML = '';
@@ -115,8 +126,10 @@
       }
       ok.hidden = false;
       cfg = payload;
+      toast('✓ Settings saved');
     } catch (e) {
       err.textContent = e.message; err.hidden = false;
+      toast('Save failed: ' + e.message, 'err');
     }
   });
 
@@ -160,6 +173,25 @@
 
   $('redetect').addEventListener('click', async () => {
     $('loc-display').textContent = 'Re-detecting on next save…';
+  });
+
+  $('lookup-zip').addEventListener('click', async () => {
+    const zip = $('loc-zip').value.trim();
+    const country = $('loc-country').value;
+    const out = $('zip-result');
+    if (!zip) { out.textContent = 'Enter a postal code first.'; return; }
+    out.textContent = 'Looking up…';
+    try {
+      const r = await fetch(`/api/geocode/zip?country=${encodeURIComponent(country)}&zip=${encodeURIComponent(zip)}`);
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Lookup failed');
+      $('loc-lat').value = j.latitude;
+      $('loc-lon').value = j.longitude;
+      out.textContent = `Found: ${j.city || ''}${j.region ? ', ' + j.region : ''} (${j.latitude}, ${j.longitude})`;
+      toast('✓ ZIP resolved — click Save to apply');
+    } catch (e) {
+      out.textContent = e.message;
+    }
   });
 
   load();
