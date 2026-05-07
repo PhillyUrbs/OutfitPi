@@ -248,6 +248,9 @@ legend { font-weight: 700; padding: 0 8px; }
   z-index: 1000;
   color: #fff;
 }
+.restart-overlay[hidden] {
+  display: none;
+}
 .restart-msg {
   background: var(--orange);
   padding: 24px 36px;
