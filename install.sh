@@ -55,7 +55,7 @@ fi
 UNIT_SRC="$INSTALL_DIR/scripts/outfitpi.service"
 UNIT_DST="$HOME/.config/systemd/user/${SERVICE_NAME}.service"
 mkdir -p "$(dirname "$UNIT_DST")"
-sed "s/__OUTFITPI_USER__/${USER_NAME}/" "$UNIT_SRC" > "$UNIT_DST"
+cp "$UNIT_SRC" "$UNIT_DST"
 
 # Use user systemd so no sudo is needed.
 systemctl --user daemon-reload

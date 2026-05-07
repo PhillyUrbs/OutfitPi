@@ -11,8 +11,6 @@ Restart=on-failure
 RestartSec=3
 SuccessExitStatus=3
 Environment=OUTFITPI_LOG_LEVEL=INFO
-# `User=` is set by install.sh via sed substitution.
-User=__OUTFITPI_USER__
 
 [Install]
 WantedBy=default.target
