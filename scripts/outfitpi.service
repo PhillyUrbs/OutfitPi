@@ -7,7 +7,7 @@ After=network-online.target
 Type=simple
 WorkingDirectory=%h/outfitpi
 ExecStart=%h/outfitpi/venv/bin/python %h/outfitpi/app.py
-Restart=on-failure
+Restart=always
 RestartSec=3
 SuccessExitStatus=3
 Environment=OUTFITPI_LOG_LEVEL=INFO
