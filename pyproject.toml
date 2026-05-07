@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "outfitpi"
+description = "Kid-friendly weather-based outfit recommender for Raspberry Pi touchscreens"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [{ name = "PhillyUrbs" }]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Home Automation",
+]
+dynamic = ["version"]
+dependencies = [
+    "flask>=3.0",
+    "httpx>=0.27",
+    "pyyaml>=6.0",
+    "flask-wtf>=1.2",
+    "flask-babel>=4.0",
+    "sentry-sdk[flask]>=2.0",
+    "packaging>=23.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.5",
+    "pytest>=8.0",
+    "beautifulsoup4>=4.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/PhillyUrbs/OutfitPi"
+Issues = "https://github.com/PhillyUrbs/OutfitPi/issues"
+
+[tool.setuptools.packages.find]
+include = ["outfitpi*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "outfitpi.__version__" }
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["static/vendor", "translations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+pythonpath = ["."]

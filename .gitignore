@@ -1,0 +1,33 @@
+# Config (user-specific, contains location)
+config.yaml
+config.yaml.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+venv/
+.venv/
+env/
+
+# Babel compiled
+*.mo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log

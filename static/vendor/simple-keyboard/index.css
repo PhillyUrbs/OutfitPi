@@ -1,0 +1,19 @@
+/* simple-keyboard placeholder styles. See index.js for vendoring instructions. */
+.simple-keyboard {
+  background: #2a2a2a;
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px;
+}
+.simple-keyboard .hg-button {
+  background: #444;
+  color: #fff;
+  padding: 14px;
+  margin: 2px;
+  border-radius: 6px;
+  display: inline-block;
+  cursor: pointer;
+  min-width: 36px;
+  text-align: center;
+}
+.simple-keyboard .hg-button:active { background: #666; }

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>OutfitPi Setup</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/simple-keyboard/index.css') }}">
+</head>
+<body class="setup">
+  <header class="topbar">
+    <h1 class="brand">OutfitPi Setup</h1>
+    <div class="step-indicator" id="step-indicator"></div>
+  </header>
+
+  <main id="setup-main" class="setup-main"
+        data-lan-ip="{{ lan_ip }}"
+        data-server-port="{{ server_port }}">
+
+    <section class="step" data-step="1">
+      <h2>Welcome!</h2>
+      <p>Let's get OutfitPi set up. We'll ask a few questions about your kids and your weather preferences.</p>
+      <p class="hint">Tip: you can finish this from your phone or laptop at
+        <strong>http://{{ lan_ip }}:{{ server_port }}</strong></p>
+    </section>
+
+    <section class="step" data-step="2" hidden>
+      <h2>Where are you?</h2>
+      <p>OutfitPi needs your location to fetch weather. Pick one option:</p>
+      <label class="big-toggle">
+        <input type="checkbox" id="loc-auto"> Auto-detect from my IP
+      </label>
+      <p class="disclosure">
+        Auto-detect uses <code>ip-api.com</code> over unencrypted HTTP. Result is cached on this device. No login required.
+      </p>
+      <div id="loc-manual">
+        <label>Latitude <input type="text" inputmode="decimal" id="loc-lat" placeholder="e.g. 39.95"></label>
+        <label>Longitude <input type="text" inputmode="decimal" id="loc-lon" placeholder="e.g. -75.16"></label>
+      </div>
+      <button type="button" class="secondary" id="test-location">Test my location</button>
+      <p id="location-result" class="result"></p>
+    </section>
+
+    <section class="step" data-step="3" hidden>
+      <h2>Who are we dressing?</h2>
+      <p>Add 1 or 2 kids.</p>
+      <div id="children-list"></div>
+      <button type="button" class="secondary" id="add-child">+ Add child</button>
+    </section>
+
+    <section class="step" data-step="4" hidden>
+      <h2>Temperature units</h2>
+      <label class="big-toggle">
+        <input type="radio" name="units" value="fahrenheit" checked> Fahrenheit (°F)
+      </label>
+      <label class="big-toggle">
+        <input type="radio" name="units" value="celsius"> Celsius (°C)
+      </label>
+    </section>
+
+    <section class="step" data-step="5" hidden>
+      <h2>Remote web access</h2>
+      <p>Allow other devices on your home Wi-Fi to open OutfitPi in a browser?</p>
+      <label class="big-toggle">
+        <input type="checkbox" id="web-remote"> Enable LAN access
+      </label>
+      <p class="hint">Weather updates and outfit recommendations work either way.</p>
+    </section>
+
+    <section class="step" data-step="6" hidden>
+      <h2>Help improve OutfitPi?</h2>
+      <p>Send anonymous error reports to help fix bugs. Reports never include location, child names, or personal data.</p>
+      <label class="big-toggle"><input type="radio" name="telemetry" value="none"> None — no reports</label>
+      <label class="big-toggle"><input type="radio" name="telemetry" value="errors" checked> Errors only (recommended)</label>
+      <label class="big-toggle"><input type="radio" name="telemetry" value="full"> Full — errors + performance</label>
+    </section>
+
+    <section class="step" data-step="7" hidden>
+      <h2>Ready!</h2>
+      <div id="summary" class="summary"></div>
+      <p>Tap <strong>Save & Start</strong> to begin.</p>
+    </section>
+
+    <nav class="setup-nav">
+      <button type="button" id="back-btn" class="secondary">Back</button>
+      <button type="button" id="next-btn" class="primary">Next</button>
+      <button type="button" id="save-btn" class="primary" hidden>Save & Start</button>
+    </nav>
+    <p id="setup-error" class="error" hidden></p>
+  </main>
+
+  <div id="keyboard-container" class="keyboard-container" hidden>
+    <div class="simple-keyboard"></div>
+  </div>
+
+  <div id="restart-overlay" class="restart-overlay" hidden>
+    <div class="restart-msg">Starting OutfitPi…</div>
+  </div>
+
+  <script src="{{ url_for('static', filename='vendor/simple-keyboard/index.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/keyboard.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/setup.js') }}"></script>
+</body>
+</html>

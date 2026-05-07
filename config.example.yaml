@@ -1,0 +1,54 @@
+# OutfitPi configuration example.
+# Copy to config.yaml and edit. Or run the setup wizard at http://<pi-ip>:5000.
+
+location:
+  # Optional explicit coordinates. Leave null to use IP geolocation (if auto+consent).
+  latitude: null
+  longitude: null
+  # Auto-detect via ip-api.com (free, HTTP, opt-in).
+  auto: false
+  consent_given: false
+
+units:
+  # "fahrenheit" or "celsius" — display only. Thresholds are stored in °F internally.
+  temperature: fahrenheit
+
+# UI language (ISO 639-1). English shipped; more via Flask-Babel translations.
+language: en
+
+# 1–2 children. Each: name, gender ("boy" or "girl"), comfort_offset_f (-15..+15).
+children: []
+# Example:
+# children:
+#   - name: Tommy
+#     gender: boy
+#     comfort_offset_f: 0
+#   - name: Lily
+#     gender: girl
+#     comfort_offset_f: -3
+
+# Outfit tier thresholds (always °F). hot > warm > cool, all 20–120.
+thresholds:
+  hot: 75
+  warm: 65
+  cool: 50
+
+# Auto-refresh interval in minutes.
+refresh_interval_minutes: 30
+
+updates:
+  auto_check: true
+  auto_install: false
+  channel: releases  # "releases" or "main"
+
+telemetry:
+  # "none" | "errors" | "full"
+  level: errors
+
+web_remote:
+  # If true, Flask binds to 0.0.0.0 (LAN-reachable). If false, 127.0.0.1 only.
+  # Outbound API calls (weather, updates) always work.
+  enabled: false
+
+server:
+  port: 5000

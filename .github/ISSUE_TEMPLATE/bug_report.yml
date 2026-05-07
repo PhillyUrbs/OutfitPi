@@ -1,0 +1,69 @@
+name: Bug report
+description: Something is broken or unexpected.
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What went wrong?
+    validations: { required: true }
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. See error
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes: { label: Expected behaviour }
+    validations: { required: true }
+  - type: textarea
+    id: actual
+    attributes: { label: Actual behaviour }
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes: { label: OutfitPi version, placeholder: "0.1.0" }
+    validations: { required: true }
+  - type: dropdown
+    id: hardware
+    attributes:
+      label: Hardware
+      options:
+        - Raspberry Pi 5
+        - Raspberry Pi 4
+        - Raspberry Pi 3
+        - Raspberry Pi Zero 2 W
+        - Other SBC
+        - Desktop / laptop
+    validations: { required: true }
+  - type: input
+    id: os
+    attributes: { label: OS / version, placeholder: "Raspberry Pi OS Bookworm 64-bit" }
+  - type: dropdown
+    id: display
+    attributes:
+      label: Display
+      options:
+        - Official Raspberry Pi Touchscreen (800×480)
+        - Official Raspberry Pi Touchscreen 2 (720×1280)
+        - Other touchscreen
+        - HDMI monitor
+        - Headless (no display)
+  - type: input
+    id: browser
+    attributes: { label: Browser, placeholder: "Chromium 120 (kiosk)" }
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Output of `journalctl --user -u outfitpi -n 200` if you have it.
+      render: shell
+  - type: textarea
+    id: screenshots
+    attributes: { label: Screenshots (optional) }

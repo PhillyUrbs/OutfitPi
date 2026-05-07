@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="{{ config.language }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>OutfitPi</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="loading">
+  <header class="topbar">
+    <h1 class="brand">OutfitPi</h1>
+    <a href="/settings" class="icon-btn" id="settings-btn" aria-label="Settings">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span class="badge" id="update-badge" hidden></span>
+    </a>
+  </header>
+
+  <main id="main">
+    <div id="weather-section" class="weather-section">
+      <div class="loading-msg">Loading weather…</div>
+    </div>
+
+    <div id="rain-banner" class="rain-banner" hidden></div>
+    <div id="stale-banner" class="stale-banner" hidden></div>
+
+    <div id="outfits" class="outfits"></div>
+  </main>
+
+  <footer class="bottombar">
+    <span id="footer-location"></span>
+    <span id="footer-updated"></span>
+  </footer>
+
+  <div id="restart-overlay" class="restart-overlay" hidden>
+    <div class="restart-msg">Restarting OutfitPi…</div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

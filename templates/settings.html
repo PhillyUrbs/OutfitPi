@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="{{ config.language }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>OutfitPi Settings</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/simple-keyboard/index.css') }}">
+</head>
+<body class="settings-page">
+  <header class="topbar">
+    <a href="/" class="icon-btn" aria-label="Back">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <h1 class="brand">Settings</h1>
+    <span class="version">v{{ app_version }}</span>
+  </header>
+
+  <main class="settings-main">
+
+    <fieldset>
+      <legend>Children</legend>
+      <div id="children-list"></div>
+      <button type="button" class="secondary" id="add-child">+ Add child</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Temperature</legend>
+      <label><input type="radio" name="units" value="fahrenheit"> °F</label>
+      <label><input type="radio" name="units" value="celsius"> °C</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Outfit thresholds</legend>
+      <label>Hot ≥ <input type="number" id="th-hot" step="1"></label>
+      <label>Warm ≥ <input type="number" id="th-warm" step="1"></label>
+      <label>Cool ≥ <input type="number" id="th-cool" step="1"></label>
+      <p class="hint">Below "Cool" is treated as Cold.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Location</legend>
+      <p id="loc-display" class="hint"></p>
+      <label>Latitude <input type="text" inputmode="decimal" id="loc-lat"></label>
+      <label>Longitude <input type="text" inputmode="decimal" id="loc-lon"></label>
+      <label class="big-toggle"><input type="checkbox" id="loc-auto"> Auto-detect from IP (opt-in)</label>
+      <button type="button" class="secondary" id="redetect">Re-detect</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Remote web access</legend>
+      <label class="big-toggle"><input type="checkbox" id="web-remote"> Allow LAN access</label>
+      <p class="hint">When off, only this Pi can reach the page.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Updates</legend>
+      <p>Current version: <strong>v{{ app_version }}</strong></p>
+      <p id="update-status" class="hint">—</p>
+      <button type="button" class="secondary" id="check-update">Check now</button>
+      <button type="button" class="primary" id="install-update" hidden>Install update</button>
+      <label class="big-toggle"><input type="checkbox" id="auto-check" checked> Auto-check daily</label>
+      <label class="big-toggle"><input type="checkbox" id="auto-install"> Auto-install</label>
+      <label>Channel
+        <select id="channel">
+          <option value="releases">Releases (recommended)</option>
+          <option value="main">Main (latest, may be unstable)</option>
+        </select>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Telemetry</legend>
+      <label><input type="radio" name="telemetry" value="none"> None</label>
+      <label><input type="radio" name="telemetry" value="errors"> Errors only</label>
+      <label><input type="radio" name="telemetry" value="full"> Full</label>
+      <p class="hint">Reports never include location, child names, or personal data.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Refresh</legend>
+      <label>Auto-refresh every <input type="number" id="refresh-min" min="1" max="180"> minutes</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Language</legend>
+      <select id="language">
+        <option value="en">English</option>
+      </select>
+    </fieldset>
+
+    <div class="actions">
+      <button type="button" class="primary" id="save">Save</button>
+      <button type="button" class="danger" id="reset">Reset to defaults</button>
+    </div>
+    <p id="settings-error" class="error" hidden></p>
+    <p id="settings-ok" class="ok" hidden>Saved.</p>
+  </main>
+
+  <div id="keyboard-container" class="keyboard-container" hidden>
+    <div class="simple-keyboard"></div>
+  </div>
+
+  <div id="restart-overlay" class="restart-overlay" hidden>
+    <div class="restart-msg">Restarting OutfitPi…</div>
+  </div>
+
+  <script src="{{ url_for('static', filename='vendor/simple-keyboard/index.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/keyboard.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+</body>
+</html>
