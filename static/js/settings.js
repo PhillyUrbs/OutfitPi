@@ -248,9 +248,18 @@
 
   $('lookup-zip').addEventListener('click', () => lookupZip());
 
-  // Auto-lookup only when the user finishes with the ZIP field (blur),
-  // or switches country with a ZIP already present.
-  $('loc-zip').addEventListener('blur', () => lookupZip({ silent: true }));
+  // Auto-lookup only when focus actually leaves the ZIP field for
+  // something that isn't the on-screen keyboard. Tapping keyboard keys
+  // briefly blurs the input, so a naive blur listener would fire after
+  // every keystroke.
+  $('loc-zip').addEventListener('blur', () => {
+    setTimeout(() => {
+      const a = document.activeElement;
+      if (a && a.closest && a.closest('.keyboard-container')) return;
+      if (a === $('loc-zip')) return;
+      lookupZip({ silent: true });
+    }, 50);
+  });
   $('loc-country').addEventListener('change', () => {
     if ($('loc-zip').value.trim()) lookupZip({ silent: true });
   });
