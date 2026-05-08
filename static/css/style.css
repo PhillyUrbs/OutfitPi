@@ -305,7 +305,12 @@ legend { font-weight: 700; padding: 0 8px; }
   background: #2a2a2a;
   padding: 8px;
   z-index: 100;
+  max-height: 45vh;
+  overflow: hidden;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.4);
 }
+.keyboard-container .simple-keyboard { width: 100%; }
+body.kb-open > main { padding-bottom: 45vh; }
 
 /* Restart overlay */
 .restart-overlay {

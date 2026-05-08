@@ -35,9 +35,13 @@
     activeInput = el;
     kb.setInput(el.value || '');
     container.hidden = false;
+    document.body.classList.add('kb-open');
+    // Scroll the focused field into view above the keyboard.
+    setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50);
   }
   function hide() {
     container.hidden = true;
+    document.body.classList.remove('kb-open');
     activeInput = null;
   }
 
