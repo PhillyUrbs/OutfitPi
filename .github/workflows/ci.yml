@@ -6,11 +6,12 @@ on:
 
 jobs:
   test:
+    name: test (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -26,3 +27,50 @@ jobs:
         run: ruff check .
       - name: Test
         run: pytest tests/ -v
+
+  # Aggregate check used by branch protection so a single required status
+  # covers the whole matrix.
+  ci-required:
+    name: ci-required
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()
+    steps:
+      - name: Verify all matrix jobs passed
+        run: |
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "test job result: ${{ needs.test.result }}"
+            exit 1
+          fi
+
+  # Promotion guard: PRs into beta must come from dev (or hotfix/*); PRs
+  # into main must come from beta (or hotfix/*).
+  promotion-guard:
+    name: promotion-guard
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && (github.base_ref == 'beta' || github.base_ref == 'main')
+    steps:
+      - name: Enforce promotion path
+        run: |
+          base="${{ github.base_ref }}"
+          head="${{ github.head_ref }}"
+          echo "PR: $head -> $base"
+          case "$base" in
+            beta)
+              if [ "$head" = "dev" ] || [[ "$head" == hotfix/* ]]; then
+                echo "OK: $head may be promoted into beta"
+                exit 0
+              fi
+              echo "::error::PRs into 'beta' must come from 'dev' or 'hotfix/*' (got '$head')"
+              exit 1
+              ;;
+            main)
+              if [ "$head" = "beta" ] || [[ "$head" == hotfix/* ]]; then
+                echo "OK: $head may be promoted into main"
+                exit 0
+              fi
+              echo "::error::PRs into 'main' must come from 'beta' or 'hotfix/*' (got '$head')"
+              exit 1
+              ;;
+          esac
+
