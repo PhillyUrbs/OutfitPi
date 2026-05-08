@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import time
 from dataclasses import dataclass
 
@@ -139,6 +140,9 @@ def fetch_current_weather(
     """Fetch current weather. Returns cached stale data on error, or None if no cache."""
     global _last_weather
 
+    if os.environ.get("OUTFITPI_DOCS_MODE"):
+        return _docs_mode_weather(units)
+
     params = {
         "latitude": latitude,
         "longitude": longitude,
@@ -166,3 +170,43 @@ def clear_cache() -> None:
     """Clear cached weather (test helper)."""
     global _last_weather
     _last_weather = None
+
+
+def _docs_mode_weather(units: str) -> CurrentWeather:
+    """Stable mocked weather for documentation screenshots."""
+    temp_f = 62.0
+    feels_f = 60.0
+    if units == "celsius":
+        temp = (temp_f - 32) * 5 / 9
+        feels = (feels_f - 32) * 5 / 9
+        hi, lo = 21.0, 12.0
+    else:
+        temp, feels = temp_f, feels_f
+        hi, lo = 70.0, 53.0
+    return CurrentWeather(
+        temperature=temp,
+        apparent_temperature=feels,
+        weather_code=2,
+        description="Partly cloudy",
+        icon="cloud-sun",
+        precipitation=0.0,
+        rain=0.0,
+        wind_speed=6.0,
+        is_day=True,
+        humidity=58,
+        uv_index_max=4.0,
+        units_temperature=units,
+        is_raining=False,
+        is_snowing=False,
+        fetched_at=time.time(),
+        temp_max=hi,
+        temp_min=lo,
+        apparent_max=hi - 1,
+        apparent_min=lo - 1,
+        precip_probability_max=10,
+        daily_weather_code=2,
+        daily_description="Partly cloudy",
+        daily_icon="cloud-sun",
+        sunrise="2026-05-08T06:00",
+        sunset="2026-05-08T20:00",
+    )
