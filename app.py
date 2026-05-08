@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import secrets
+import subprocess
 import sys
 import threading
 import time
@@ -194,8 +195,23 @@ def create_app(config_path: Path | None = None) -> Flask:
     @app.get("/api/health")
     def api_health():
         # Tiny endpoint used by the front-end to detect when the server is
-        # back online after an update or remote-toggle restart.
-        return jsonify({"ok": True, "version": __version__})
+        # back online after an update or remote-toggle restart. Includes
+        # the local git HEAD short SHA so the UI can detect dev-channel
+        # rebuilds that don't bump __version__.
+        sha = ""
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "--short=7", "HEAD"],
+                cwd=str(BASE_DIR),
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=2,
+            )
+            sha = result.stdout.strip()
+        except (FileNotFoundError, subprocess.SubprocessError):
+            pass
+        return jsonify({"ok": True, "version": __version__, "sha": sha})
 
     @app.get("/api/settings")
     def api_settings_get():

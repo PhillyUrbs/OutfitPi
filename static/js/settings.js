@@ -17,32 +17,32 @@
   }
 
   // Show the restart overlay and reload only once the server has actually
-  // gone down and come back up. Polls /api/health up to ~120s. If
-  // previousVersion is given, also requires the reported version to differ
-  // (i.e. the new build is running). Without that, requires at least one
-  // failed health check (server going down) before accepting a 200.
+  // gone down and come back up. Polls /api/health up to ~120s.
+  // Decision rules:
+  //   - if a previousFingerprint (sha or version) is provided AND the
+  //     reported fingerprint differs, the new build is up: redirect.
+  //   - otherwise wait until at least one failed health check is observed
+  //     (server has gone down), then redirect on the next 200.
   async function waitForRestartAndReload(opts = {}) {
     const overlay = $('restart-overlay');
     const msgEl = overlay.querySelector('.restart-msg');
     if (msgEl && opts.message) msgEl.innerHTML = opts.message;
     overlay.hidden = false;
-    const startVersion = opts.previousVersion || null;
+    const startFp = opts.previousFingerprint || null;
     const deadline = Date.now() + 120000;
     let sawDown = false;
-    // Give the server a moment to actually start shutting down.
     await new Promise(r => setTimeout(r, 2000));
     while (Date.now() < deadline) {
       try {
         const r = await fetch('/api/health', { cache: 'no-store' });
         if (r.ok) {
           const j = await r.json().catch(() => ({}));
-          if (startVersion) {
-            if (j.version && j.version !== startVersion) {
-              location.href = opts.redirect || '/';
-              return;
-            }
-            // Same version still reporting — server hasn't restarted yet.
-          } else if (sawDown) {
+          const fp = `${j.version || ''}@${j.sha || ''}`;
+          if (startFp && fp !== startFp) {
+            location.href = opts.redirect || '/';
+            return;
+          }
+          if (sawDown) {
             location.href = opts.redirect || '/';
             return;
           }
@@ -265,10 +265,13 @@
 
   async function runInstall(message, ref) {
     $('update-status').textContent = 'Installing…';
-    let prevVersion = null;
+    let prevFp = null;
     try {
       const h = await fetch('/api/health', { cache: 'no-store' });
-      if (h.ok) prevVersion = (await h.json()).version || null;
+      if (h.ok) {
+        const j = await h.json();
+        prevFp = `${j.version || ''}@${j.sha || ''}`;
+      }
     } catch {}
     const r = await fetch('/api/update/install', {
       method: 'POST',
@@ -279,7 +282,7 @@
     if (j.ok) {
       await waitForRestartAndReload({
         message: `${message}<br><small>This usually takes 10–30 seconds.</small>`,
-        previousVersion: prevVersion,
+        previousFingerprint: prevFp,
       });
     } else {
       $('update-status').textContent = 'Update failed: ' + (j.message || 'unknown');
