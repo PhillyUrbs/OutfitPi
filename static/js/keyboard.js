@@ -1,8 +1,11 @@
-// Virtual keyboard activation — only on coarse-pointer devices (Pi kiosk).
+// Virtual keyboard activation — on touchscreens / coarse-pointer devices.
 (() => {
   if (typeof window.SimpleKeyboard === 'undefined') return;
-  const isCoarse = window.matchMedia('(pointer: coarse)').matches;
-  if (!isCoarse) return;
+  const isTouch =
+    window.matchMedia('(pointer: coarse)').matches ||
+    'ontouchstart' in window ||
+    (navigator.maxTouchPoints || 0) > 0;
+  if (!isTouch) return;
 
   const Keyboard = window.SimpleKeyboard.default || window.SimpleKeyboard;
   const container = document.getElementById('keyboard-container');
