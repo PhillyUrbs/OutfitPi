@@ -191,6 +191,12 @@ def create_app(config_path: Path | None = None) -> Flask:
         cfg = load_config(cfg_path)
         return render_template("settings.html", config=cfg)
 
+    @app.get("/api/health")
+    def api_health():
+        # Tiny endpoint used by the front-end to detect when the server is
+        # back online after an update or remote-toggle restart.
+        return jsonify({"ok": True, "version": __version__})
+
     @app.get("/api/settings")
     def api_settings_get():
         cfg = load_config(cfg_path)

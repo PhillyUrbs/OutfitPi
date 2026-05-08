@@ -16,6 +16,33 @@
     toastTimer = setTimeout(() => { t.hidden = true; }, 3000);
   }
 
+  // Show the restart overlay and reload only once the server is healthy.
+  // Polls /api/health up to ~120s; if previousVersion is given, also waits
+  // until the reported version differs (i.e. the new build is running).
+  async function waitForRestartAndReload(opts = {}) {
+    const overlay = $('restart-overlay');
+    const msgEl = overlay.querySelector('.restart-msg');
+    if (msgEl && opts.message) msgEl.innerHTML = opts.message;
+    overlay.hidden = false;
+    const startVersion = opts.previousVersion || null;
+    const deadline = Date.now() + 120000;
+    await new Promise(r => setTimeout(r, 1500));
+    while (Date.now() < deadline) {
+      try {
+        const r = await fetch('/api/health', { cache: 'no-store' });
+        if (r.ok) {
+          const j = await r.json().catch(() => ({}));
+          if (!startVersion || j.version !== startVersion) {
+            location.href = opts.redirect || '/';
+            return;
+          }
+        }
+      } catch {}
+      await new Promise(r => setTimeout(r, 1000));
+    }
+    location.href = opts.redirect || '/';
+  }
+
   function renderChildren() {
     const list = $('children-list');
     list.innerHTML = '';
@@ -129,7 +156,12 @@
         });
         const j2 = await r2.json();
         if (j2.warning) alert(j2.warning);
-        if (j2.restarting) { $('restart-overlay').hidden = false; setTimeout(() => location.href = '/', 3000); return; }
+        if (j2.restarting) {
+          await waitForRestartAndReload({
+            message: 'Applying network change…<br><small>Reconnecting…</small>',
+          });
+          return;
+        }
       }
       cfg = payload;
       // Sync theme immediately if the user just changed it.
@@ -206,14 +238,22 @@
   $('install-update').addEventListener('click', async () => {
     if (!confirm('Install the latest update? OutfitPi will restart.')) return;
     $('update-status').textContent = 'Installing…';
+    // Snapshot current version so we can detect when the new build is up.
+    let prevVersion = null;
+    try {
+      const h = await fetch('/api/health', { cache: 'no-store' });
+      if (h.ok) prevVersion = (await h.json()).version || null;
+    } catch {}
     const r = await fetch('/api/update/install', {
       method: 'POST',
       headers: { 'X-CSRFToken': csrfToken },
     });
     const j = await r.json();
     if (j.ok) {
-      $('restart-overlay').hidden = false;
-      setTimeout(() => location.href = '/', 5000);
+      await waitForRestartAndReload({
+        message: 'Installing update…<br><small>This usually takes 10–30 seconds.</small>',
+        previousVersion: prevVersion,
+      });
     } else {
       $('update-status').textContent = 'Update failed: ' + (j.message || 'unknown');
     }
