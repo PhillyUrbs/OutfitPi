@@ -38,8 +38,8 @@ refresh_interval_minutes: 30
 
 updates:
   auto_check: true
-  auto_install: false
-  channel: releases  # "releases" or "main"
+  auto_install: true
+  channel: stable  # "stable" | "beta" | "dev"
 
 telemetry:
   # "none" | "errors" | "full"
@@ -49,6 +49,10 @@ web_remote:
   # If true, Flask binds to 0.0.0.0 (LAN-reachable). If false, 127.0.0.1 only.
   # Outbound API calls (weather, updates) always work.
   enabled: false
+
+display:
+  # "auto" (light by day, dark at night), "light", or "dark"
+  theme: auto
 
 server:
   port: 5000

@@ -32,7 +32,7 @@ def test_index_returns_200(client, mock_weather):
     body = resp.get_data(as_text=True)
     # Index is JS-rendered; verify shell loads correctly
     assert "OutfitPi" in body
-    assert "outfits" in body
+    assert "dashboard" in body
 
 
 def test_api_weather_json(client, mock_weather):
@@ -67,7 +67,7 @@ def test_api_settings_post_valid(client):
         "location": {"latitude": 40.0, "longitude": -75.0, "auto": False, "consent_given": False},
         "children": [{"name": "Tommy", "gender": "boy", "comfort_offset_f": 0}],
         "thresholds": {"hot": 80, "warm": 70, "cool": 55},
-        "updates": {"auto_check": True, "auto_install": False, "channel": "releases"},
+        "updates": {"auto_check": True, "auto_install": False, "channel": "stable"},
         "telemetry": {"level": "none"},
         "web_remote": {"enabled": False},
         "server": {"port": 5000},

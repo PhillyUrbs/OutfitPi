@@ -62,6 +62,17 @@ class CurrentWeather:
     is_raining: bool
     is_snowing: bool
     fetched_at: float  # unix timestamp
+    # Daily forecast (today)
+    temp_max: float | None = None
+    temp_min: float | None = None
+    apparent_max: float | None = None
+    apparent_min: float | None = None
+    precip_probability_max: float | None = None
+    daily_weather_code: int | None = None
+    daily_description: str | None = None
+    daily_icon: str | None = None
+    sunrise: str | None = None  # ISO8601 local
+    sunset: str | None = None
     stale: bool = False
 
 
@@ -73,6 +84,13 @@ def _describe(code: int) -> tuple[str, str]:
     return WMO_CODES.get(code, ("Unknown", "cloud"))
 
 
+def _first(lst, idx=0, cast=float):
+    try:
+        return cast(lst[idx]) if lst else None
+    except (TypeError, ValueError, IndexError):
+        return None
+
+
 def _parse(payload: dict, units: str) -> CurrentWeather:
     current = payload.get("current") or {}
     daily = payload.get("daily") or {}
@@ -82,8 +100,9 @@ def _parse(payload: dict, units: str) -> CurrentWeather:
     rain_amt = float(current.get("rain", 0.0) or 0.0)
     is_rain = code in RAIN_CODES or precip > 0 or rain_amt > 0
     is_snow = code in SNOW_CODES
-    uv_list = daily.get("uv_index_max") or []
-    uv = float(uv_list[0]) if uv_list else None
+    uv = _first(daily.get("uv_index_max"))
+    daily_code = _first(daily.get("weather_code"), cast=int)
+    daily_desc, daily_icon = _describe(daily_code) if daily_code is not None else (None, None)
 
     return CurrentWeather(
         temperature=float(current.get("temperature_2m", 0.0)),
@@ -101,6 +120,16 @@ def _parse(payload: dict, units: str) -> CurrentWeather:
         is_raining=is_rain,
         is_snowing=is_snow,
         fetched_at=time.time(),
+        temp_max=_first(daily.get("temperature_2m_max")),
+        temp_min=_first(daily.get("temperature_2m_min")),
+        apparent_max=_first(daily.get("apparent_temperature_max")),
+        apparent_min=_first(daily.get("apparent_temperature_min")),
+        precip_probability_max=_first(daily.get("precipitation_probability_max")),
+        daily_weather_code=daily_code,
+        daily_description=daily_desc,
+        daily_icon=daily_icon,
+        sunrise=_first(daily.get("sunrise"), cast=str),
+        sunset=_first(daily.get("sunset"), cast=str),
     )
 
 
@@ -114,7 +143,7 @@ def fetch_current_weather(
         "latitude": latitude,
         "longitude": longitude,
         "current": "temperature_2m,apparent_temperature,weather_code,precipitation,rain,wind_speed_10m,is_day,relative_humidity_2m",
-        "daily": "uv_index_max",
+        "daily": "uv_index_max,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,weather_code,sunrise,sunset",
         "temperature_unit": units,
         "wind_speed_unit": "mph",
         "timezone": "auto",

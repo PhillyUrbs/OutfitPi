@@ -7,6 +7,7 @@
   <title>OutfitPi Settings</title>
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="{{ url_for('static', filename='js/theme.js') }}" defer></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/simple-keyboard/index.css') }}">
 </head>
 <body class="settings-page">
@@ -43,8 +44,30 @@
     <fieldset>
       <legend>Location</legend>
       <p id="loc-display" class="hint"></p>
-      <label>Latitude <input type="text" inputmode="decimal" id="loc-lat"></label>
-      <label>Longitude <input type="text" inputmode="decimal" id="loc-lon"></label>
+      <label>Postal / ZIP code
+        <input type="text" inputmode="numeric" pattern="[0-9A-Za-z\- ]*" id="loc-zip" placeholder="e.g. 19468" autocomplete="postal-code">
+      </label>
+      <label>Country
+        <select id="loc-country">
+          <option value="us" selected>United States</option>
+          <option value="ca">Canada</option>
+          <option value="gb">United Kingdom</option>
+          <option value="de">Germany</option>
+          <option value="fr">France</option>
+          <option value="au">Australia</option>
+          <option value="nl">Netherlands</option>
+          <option value="es">Spain</option>
+          <option value="it">Italy</option>
+          <option value="mx">Mexico</option>
+        </select>
+      </label>
+      <button type="button" class="secondary" id="lookup-zip">Look up ZIP</button>
+      <p id="zip-result" class="hint"></p>
+      <details>
+        <summary>Coordinates</summary>
+        <label>Latitude <input type="text" inputmode="decimal" id="loc-lat"></label>
+        <label>Longitude <input type="text" inputmode="decimal" id="loc-lon"></label>
+      </details>
       <label class="big-toggle"><input type="checkbox" id="loc-auto"> Auto-detect from IP (opt-in)</label>
       <button type="button" class="secondary" id="redetect">Re-detect</button>
     </fieldset>
@@ -61,12 +84,23 @@
       <p id="update-status" class="hint">—</p>
       <button type="button" class="secondary" id="check-update">Check now</button>
       <button type="button" class="primary" id="install-update" hidden>Install update</button>
+      <div id="dev-install" class="dev-install" hidden>
+        <label>Force install version</label>
+        <div id="dev-ref-list" class="ref-list" role="listbox" aria-label="Select a build to install" data-drag-scroll>
+          <div class="ref-list-empty">Loading…</div>
+        </div>
+        <label>Or enter a ref (tag, branch or SHA)
+          <input type="text" id="dev-ref-input" placeholder="dev | v0.4.0 | a1b2c3d" autocomplete="off">
+        </label>
+        <button type="button" class="secondary" id="force-update">Force install</button>
+      </div>
       <label class="big-toggle"><input type="checkbox" id="auto-check" checked> Auto-check daily</label>
       <label class="big-toggle"><input type="checkbox" id="auto-install"> Auto-install</label>
       <label>Channel
         <select id="channel">
-          <option value="releases">Releases (recommended)</option>
-          <option value="main">Main (latest, may be unstable)</option>
+          <option value="stable">Stable (recommended)</option>
+          <option value="beta">Beta (release candidates)</option>
+          <option value="dev">Dev (latest, may be unstable)</option>
         </select>
       </label>
     </fieldset>
@@ -85,6 +119,17 @@
     </fieldset>
 
     <fieldset>
+      <legend>Display</legend>
+      <label>Theme
+        <select id="theme">
+          <option value="auto">Auto (light by day, dark at night)</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </label>
+    </fieldset>
+
+    <fieldset>
       <legend>Language</legend>
       <select id="language">
         <option value="en">English</option>
@@ -92,14 +137,18 @@
     </fieldset>
 
     <div class="actions">
-      <button type="button" class="primary" id="save">Save</button>
       <button type="button" class="danger" id="reset">Reset to defaults</button>
     </div>
     <p id="settings-error" class="error" hidden></p>
     <p id="settings-ok" class="ok" hidden>Saved.</p>
   </main>
 
+  <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
+
   <div id="keyboard-container" class="keyboard-container" hidden>
+    <div class="keyboard-header">
+      <button type="button" id="keyboard-hide" class="keyboard-hide" aria-label="Hide keyboard">⌄ Hide keyboard</button>
+    </div>
     <div class="simple-keyboard"></div>
   </div>
 
@@ -109,6 +158,7 @@
 
   <script src="{{ url_for('static', filename='vendor/simple-keyboard/index.js') }}"></script>
   <script src="{{ url_for('static', filename='js/keyboard.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/drag-scroll.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
 </body>
 </html>

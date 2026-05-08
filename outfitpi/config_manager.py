@@ -15,7 +15,15 @@ import yaml
 VALID_GENDERS = {"boy", "girl"}
 VALID_UNITS = {"fahrenheit", "celsius"}
 VALID_TELEMETRY = {"none", "errors", "full"}
-VALID_CHANNELS = {"releases", "main"}
+VALID_THEMES = {"auto", "light", "dark"}
+VALID_CHANNELS = {"stable", "beta", "dev"}
+# Map legacy channel names to current ones for backward compatibility.
+_CHANNEL_ALIASES = {"releases": "stable", "main": "dev"}
+
+
+def _normalize_channel(value: str) -> str:
+    v = str(value or "stable").strip().lower()
+    return _CHANNEL_ALIASES.get(v, v)
 
 
 class ConfigError(ValueError):
@@ -52,8 +60,8 @@ class Thresholds:
 @dataclass
 class Updates:
     auto_check: bool = True
-    auto_install: bool = False
-    channel: str = "releases"
+    auto_install: bool = True
+    channel: str = "stable"
 
 
 @dataclass
@@ -64,6 +72,11 @@ class Telemetry:
 @dataclass
 class WebRemote:
     enabled: bool = False
+
+
+@dataclass
+class Display:
+    theme: str = "auto"  # "auto" | "light" | "dark"
 
 
 @dataclass
@@ -82,6 +95,7 @@ class Config:
     updates: Updates = field(default_factory=Updates)
     telemetry: Telemetry = field(default_factory=Telemetry)
     web_remote: WebRemote = field(default_factory=WebRemote)
+    display: Display = field(default_factory=Display)
     server: Server = field(default_factory=Server)
 
     def to_dict(self) -> dict[str, Any]:
@@ -142,7 +156,7 @@ def _from_dict(data: dict[str, Any]) -> Config:
     cfg.updates = Updates(
         auto_check=bool(upd.get("auto_check", True)),
         auto_install=bool(upd.get("auto_install", False)),
-        channel=str(upd.get("channel", "releases")),
+        channel=_normalize_channel(upd.get("channel", "stable")),
     )
 
     tel = data.get("telemetry") or {}
@@ -150,6 +164,10 @@ def _from_dict(data: dict[str, Any]) -> Config:
 
     wr = data.get("web_remote") or {}
     cfg.web_remote = WebRemote(enabled=bool(wr.get("enabled", False)))
+
+    disp = data.get("display") or {}
+    theme = str(disp.get("theme", "auto")).strip().lower()
+    cfg.display = Display(theme=theme if theme in VALID_THEMES else "auto")
 
     srv = data.get("server") or {}
     cfg.server = Server(port=int(srv.get("port", 5000)))
@@ -161,10 +179,26 @@ def load_config(path: Path) -> Config:
     """Load YAML config; returns defaults if missing."""
     p = Path(path)
     if not p.exists():
-        return Config()
-    with p.open("r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    return _from_dict(data)
+        cfg = Config()
+    else:
+        with p.open("r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        cfg = _from_dict(data)
+    _apply_channel_policy(cfg)
+    return cfg
+
+
+def _apply_channel_policy(cfg: Config) -> None:
+    """Enforce per-channel policy for updates and telemetry.
+
+    Rules:
+      - All channels: auto-check and auto-install are on.
+      - dev / beta: telemetry forced to "full".
+    """
+    cfg.updates.auto_check = True
+    cfg.updates.auto_install = True
+    if cfg.updates.channel in {"dev", "beta"}:
+        cfg.telemetry.level = "full"
 
 
 def validate_config(cfg: Config) -> None:
@@ -192,12 +226,15 @@ def validate_config(cfg: Config) -> None:
         raise ConfigError(f"Invalid telemetry level: {cfg.telemetry.level}")
     if cfg.updates.channel not in VALID_CHANNELS:
         raise ConfigError(f"Invalid update channel: {cfg.updates.channel}")
+    if cfg.display.theme not in VALID_THEMES:
+        raise ConfigError(f"Invalid theme: {cfg.display.theme}")
     if cfg.refresh_interval_minutes < 1:
         raise ConfigError("refresh_interval_minutes must be >= 1")
 
 
 def save_config(path: Path, cfg: Config) -> None:
     """Atomic write with .bak; mode 0600 on POSIX."""
+    _apply_channel_policy(cfg)
     validate_config(cfg)
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)

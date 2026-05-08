@@ -7,8 +7,9 @@
   <title>OutfitPi</title>
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="{{ url_for('static', filename='js/theme.js') }}" defer></script>
 </head>
-<body class="loading">
+<body class="loading" data-app-version="{{ app_version }}">
   <header class="topbar">
     <h1 class="brand">OutfitPi</h1>
     <a href="/settings" class="icon-btn" id="settings-btn" aria-label="Settings">
@@ -18,15 +19,27 @@
   </header>
 
   <main id="main">
-    <div id="weather-section" class="weather-section">
-      <div class="loading-msg">Loading weather…</div>
-    </div>
-
     <div id="rain-banner" class="rain-banner" hidden></div>
     <div id="stale-banner" class="stale-banner" hidden></div>
-
-    <div id="outfits" class="outfits"></div>
+    <div id="dashboard" class="dashboard">
+      <div class="loading-msg">Loading…</div>
+    </div>
   </main>
+
+  <div id="dev-toggle" class="dev-toggle" hidden>
+    <span class="dev-toggle-label">Dev</span>
+    <button type="button" data-mode="auto" class="active">Auto</button>
+    <button type="button" data-mode="day">Day</button>
+    <button type="button" data-mode="night">Night</button>
+    <span class="dev-toggle-sep" aria-hidden="true">|</span>
+    <button type="button" data-kids="all" class="active">All</button>
+    <button type="button" data-kids="1">1 Kid</button>
+    <button type="button" data-kids="2">2 Kids</button>
+    <span class="dev-toggle-sep" aria-hidden="true">|</span>
+    <button type="button" data-theme="auto" class="active">Auto</button>
+    <button type="button" data-theme="light">Light</button>
+    <button type="button" data-theme="dark">Dark</button>
+  </div>
 
   <footer class="bottombar">
     <span id="footer-location"></span>

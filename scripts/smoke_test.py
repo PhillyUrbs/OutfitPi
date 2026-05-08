@@ -161,7 +161,7 @@ def main() -> int:
             {"name": "Lily", "gender": "girl", "comfort_offset_f": -3},
         ],
         "thresholds": {"hot": 75, "warm": 65, "cool": 50},
-        "updates": {"auto_check": True, "auto_install": False, "channel": "releases"},
+        "updates": {"auto_check": True, "auto_install": False, "channel": "stable"},
         "telemetry": {"level": "none"},
         "web_remote": {"enabled": True},
         "server": {"port": 5000},

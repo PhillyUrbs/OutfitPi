@@ -85,3 +85,39 @@ def clear_cache() -> None:
     """Clear cached location (used for tests and re-detection)."""
     global _cache
     _cache = None
+
+
+ZIPPOPOTAM_URL = "https://api.zippopotam.us/{country}/{zip}"
+
+
+def geocode_zip(country: str, zip_code: str) -> Location:
+    """Resolve a postal code to lat/lon via Zippopotam.us (free, no key).
+
+    `country` is a 2-letter ISO code (e.g. "us", "ca", "de").
+    """
+    country = (country or "us").strip().lower()
+    zip_code = (zip_code or "").strip()
+    if not zip_code:
+        raise LocationServiceError("Postal code is required.")
+    url = ZIPPOPOTAM_URL.format(country=country, zip=zip_code)
+    try:
+        resp = httpx.get(url, timeout=10.0)
+        if resp.status_code == 404:
+            raise LocationServiceError(f"Postal code {zip_code!r} not found in {country.upper()}.")
+        resp.raise_for_status()
+        data = resp.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise LocationServiceError(f"Postal code lookup failed: {exc}") from exc
+
+    places = data.get("places") or []
+    if not places:
+        raise LocationServiceError(f"No places found for postal code {zip_code!r}.")
+    p = places[0]
+    return Location(
+        latitude=float(p["latitude"]),
+        longitude=float(p["longitude"]),
+        city=p.get("place name"),
+        region=p.get("state") or p.get("state abbreviation"),
+        country=data.get("country"),
+        source="zip",
+    )
