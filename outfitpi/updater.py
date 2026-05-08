@@ -232,13 +232,18 @@ def perform_update(
     venv_pip: Path | None = None,
     *,
     channel: str = "stable",
+    target_ref: str | None = None,
 ) -> tuple[bool, str]:
-    """Fetch + reset to the channel target, install requirements.
+    """Fetch + reset to the channel target (or an explicit ref) and install
+    requirements.
 
-    Channels:
+    Channels (when target_ref is None):
       - stable: latest non-prerelease tag (latest GitHub release)
       - beta:   latest tag (incl. prereleases) by version sort
       - dev:    HEAD of the `dev` branch
+
+    target_ref overrides the channel target with an explicit ref (branch,
+    tag, or commit SHA). Validation is the caller's responsibility.
     Returns (success, message).
     """
     repo_path = Path(repo_path)
@@ -254,7 +259,9 @@ def perform_update(
             timeout=120,
         )
 
-        if channel == "dev":
+        if target_ref:
+            target = target_ref
+        elif channel == "dev":
             target = "origin/dev"
         else:
             # Get tags by version sort.
@@ -311,3 +318,79 @@ def _is_prerelease_tag(tag: str) -> bool:
 def clear_cache() -> None:
     global _cache
     _cache = {}
+
+
+_REF_RE = re.compile(r"^[A-Za-z0-9._/\-]{1,100}$")
+
+
+def is_valid_ref(ref: str) -> bool:
+    """Surface-level validation for a user-supplied git ref.
+
+    Allows: alphanumerics, dot, dash, underscore, slash. Length 1-100.
+    Reject anything that could shell-escape or path-traverse. The actual
+    existence check is left to git itself in perform_update.
+    """
+    if not ref or not isinstance(ref, str):
+        return False
+    if ".." in ref or ref.startswith("-"):
+        return False
+    return bool(_REF_RE.match(ref))
+
+
+def list_refs(repo_path: Path, *, max_commits: int = 20) -> dict[str, list[dict[str, str]]]:
+    """List recent tags and recent commits on the dev branch for the
+    selector UI. Best-effort: returns empty lists on git errors.
+    """
+    repo_path = Path(repo_path)
+    out: dict[str, list[dict[str, str]]] = {"tags": [], "commits": []}
+    try:
+        # Refresh so newly-pushed tags/commits are visible.
+        subprocess.run(
+            ["git", "fetch", "origin", "--tags", "--prune"],
+            cwd=repo_path,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        tags_res = subprocess.run(
+            ["git", "tag", "--sort=-creatordate", "--format=%(refname:short)|%(creatordate:short)|%(subject)"],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=10,
+        )
+        for line in tags_res.stdout.splitlines()[:30]:
+            parts = line.split("|", 2)
+            if not parts[0]:
+                continue
+            out["tags"].append({
+                "ref": parts[0],
+                "date": parts[1] if len(parts) > 1 else "",
+                "subject": parts[2] if len(parts) > 2 else "",
+            })
+        commits_res = subprocess.run(
+            [
+                "git", "log", "origin/dev",
+                f"-n{max_commits}",
+                "--pretty=format:%h|%cs|%s",
+            ],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=10,
+        )
+        for line in commits_res.stdout.splitlines():
+            parts = line.split("|", 2)
+            if not parts[0]:
+                continue
+            out["commits"].append({
+                "ref": parts[0],
+                "date": parts[1] if len(parts) > 1 else "",
+                "subject": parts[2] if len(parts) > 2 else "",
+            })
+    except (FileNotFoundError, subprocess.SubprocessError) as exc:
+        logger.warning("list_refs failed: %s", exc)
+    return out

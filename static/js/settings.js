@@ -80,7 +80,7 @@
     $('auto-check').checked = cfg.updates.auto_check;
     $('auto-install').checked = cfg.updates.auto_install;
     $('channel').value = cfg.updates.channel;
-    $('force-update').hidden = cfg.updates.channel !== 'dev';
+    toggleDevInstall(cfg.updates.channel === 'dev');
     $('theme').value = (cfg.display && cfg.display.theme) || 'auto';
   }
 
@@ -193,7 +193,7 @@
     const tel = (ch === 'dev' || ch === 'beta') ? 'full' : 'errors';
     const radio = document.querySelector(`input[name="telemetry"][value="${tel}"]`);
     if (radio) radio.checked = true;
-    $('force-update').hidden = ch !== 'dev';
+    toggleDevInstall(ch === 'dev');
   }
   document.getElementById('channel').addEventListener('change', () => {
     applyChannelDefaults();
@@ -239,15 +239,17 @@
 
   $('install-update').addEventListener('click', async () => {
     if (!confirm('Install the latest update? OutfitPi will restart.')) return;
-    runInstall('Installing update…');
+    runInstall('Installing update…', null);
   });
 
   $('force-update').addEventListener('click', async () => {
-    if (!confirm('Force reinstall the current dev build? OutfitPi will restart.')) return;
-    runInstall('Reinstalling dev build…');
+    const ref = ($('dev-ref-input').value.trim() || $('dev-ref-select').value || '').trim();
+    const label = ref || 'current dev HEAD';
+    if (!confirm(`Force install ${label}? OutfitPi will restart.`)) return;
+    runInstall(`Installing ${label}…`, ref || null);
   });
 
-  async function runInstall(message) {
+  async function runInstall(message, ref) {
     $('update-status').textContent = 'Installing…';
     let prevVersion = null;
     try {
@@ -256,19 +258,47 @@
     } catch {}
     const r = await fetch('/api/update/install', {
       method: 'POST',
-      headers: { 'X-CSRFToken': csrfToken },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify(ref ? { ref } : {}),
     });
     const j = await r.json();
     if (j.ok) {
       await waitForRestartAndReload({
         message: `${message}<br><small>This usually takes 10–30 seconds.</small>`,
-        // Force-reinstall keeps the same version, so don't gate on version
-        // change — just wait for the server to come back.
         previousVersion: null,
       });
     } else {
       $('update-status').textContent = 'Update failed: ' + (j.message || 'unknown');
     }
+  }
+
+  let devRefsLoaded = false;
+  async function toggleDevInstall(show) {
+    $('dev-install').hidden = !show;
+    if (!show || devRefsLoaded) return;
+    devRefsLoaded = true;
+    try {
+      const r = await fetch('/api/update/refs');
+      if (!r.ok) return;
+      const data = await r.json();
+      const sel = $('dev-ref-select');
+      sel.innerHTML = '<option value="">— dev HEAD (latest) —</option>';
+      const optgroup = (label, items) => {
+        if (!items || !items.length) return;
+        const og = document.createElement('optgroup');
+        og.label = label;
+        items.forEach(it => {
+          const o = document.createElement('option');
+          o.value = it.ref;
+          const subj = it.subject ? ` — ${it.subject.slice(0, 50)}` : '';
+          o.textContent = `${it.ref}${it.date ? ' (' + it.date + ')' : ''}${subj}`;
+          og.appendChild(o);
+        });
+        sel.appendChild(og);
+      };
+      optgroup('Tags', data.tags);
+      optgroup('Recent dev commits', data.commits);
+    } catch {}
   }
 
   $('redetect').addEventListener('click', async () => {

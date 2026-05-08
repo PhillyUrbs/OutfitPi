@@ -51,7 +51,7 @@ from outfitpi.location import (
 from outfitpi.network_utils import get_lan_ip
 from outfitpi.recommender import recommend_all
 from outfitpi.telemetry import init_sentry
-from outfitpi.updater import check_for_update, detect_repo, perform_update
+from outfitpi.updater import check_for_update, detect_repo, is_valid_ref, list_refs, perform_update
 from outfitpi.weather import fetch_current_weather
 
 # ── Paths ─────────────────────────────────────────────────────────────────
@@ -265,11 +265,32 @@ def create_app(config_path: Path | None = None) -> Flask:
         cfg = load_config(cfg_path) if config_exists(cfg_path) else Config()
         venv_pip = BASE_DIR / "venv" / "bin" / "pip"
         venv_pip = venv_pip if venv_pip.exists() else None
-        ok, msg = perform_update(BASE_DIR, venv_pip=venv_pip, channel=cfg.updates.channel)
+        # Optional explicit ref (dev channel only). Accepts a tag, branch
+        # or commit SHA. Validated against a strict allowlist before being
+        # passed to git.
+        target_ref = None
+        body = request.get_json(silent=True) or {}
+        ref = (body.get("ref") or "").strip() if isinstance(body, dict) else ""
+        if ref:
+            if cfg.updates.channel != "dev":
+                return jsonify({"ok": False, "message": "ref override is only allowed on the dev channel"}), 400
+            if not is_valid_ref(ref):
+                return jsonify({"ok": False, "message": f"invalid ref: {ref!r}"}), 400
+            target_ref = ref
+        ok, msg = perform_update(
+            BASE_DIR, venv_pip=venv_pip, channel=cfg.updates.channel, target_ref=target_ref,
+        )
         if ok:
             schedule_restart()
             return jsonify({"ok": True, "message": msg, "restarting": True, "delay": 2})
         return jsonify({"ok": False, "message": msg}), 500
+
+    @app.get("/api/update/refs")
+    def api_update_refs():
+        cfg = load_config(cfg_path) if config_exists(cfg_path) else Config()
+        if cfg.updates.channel != "dev":
+            return jsonify({"error": "dev channel only"}), 403
+        return jsonify(list_refs(BASE_DIR))
 
     # ── Routes: utility ──────────────────────────────────────────────────
     @app.get("/api/geocode/zip")

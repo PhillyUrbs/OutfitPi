@@ -295,6 +295,18 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Settings */
 .settings-main { padding: 16px; max-width: 800px; margin: 0 auto; }
+.dev-install {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(255,159,67,0.12);
+  border: 1px dashed var(--orange);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dev-install[hidden] { display: none; }
+.dev-install select, .dev-install input { width: 100%; }
 fieldset {
   border: 2px solid #d0d7e2;
   border-radius: var(--radius);
