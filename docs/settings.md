@@ -3,7 +3,7 @@
 Open Settings from the gear icon in the top-right of the dashboard, or browse
 to `http://<pi-ip>:5000/settings`.
 
-![Settings](img/settings.png){ loading=lazy }
+{{ img("settings.png", "Settings") }}
 
 ## Autosave
 
