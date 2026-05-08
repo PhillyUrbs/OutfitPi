@@ -251,7 +251,7 @@ def create_app(config_path: Path | None = None) -> Flask:
     @app.get("/api/update/check")
     def api_update_check():
         cfg = load_config(cfg_path) if config_exists(cfg_path) else Config()
-        info = check_for_update(__version__, detect_repo(BASE_DIR), channel=cfg.updates.channel)
+        info = check_for_update(__version__, detect_repo(BASE_DIR), channel=cfg.updates.channel, repo_path=BASE_DIR)
         return jsonify(asdict(info))
 
     @app.post("/api/update/install")
@@ -395,8 +395,11 @@ def _startup_update_thread(cfg: Config) -> None:
         return
 
     def _worker():
+        # Delay so a startup-update loop (e.g. caused by a buggy version
+        # comparison) can't churn faster than every 60s.
+        time.sleep(60)
         try:
-            info = check_for_update(__version__, detect_repo(BASE_DIR), channel=cfg.updates.channel)
+            info = check_for_update(__version__, detect_repo(BASE_DIR), channel=cfg.updates.channel, repo_path=BASE_DIR)
             if info.available and cfg.updates.auto_install:
                 logger.info("Auto-installing update %s", info.latest_version)
                 venv_pip = BASE_DIR / "venv" / "bin" / "pip"
