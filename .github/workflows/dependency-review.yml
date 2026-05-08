@@ -1,0 +1,20 @@
+name: Dependency review
+on:
+  pull_request:
+    branches: [main, beta, dev]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    name: dependency-review
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          # Fail PR if it introduces any new vuln at moderate or higher.
+          fail-on-severity: moderate
+          comment-summary-in-pr: on-failure
