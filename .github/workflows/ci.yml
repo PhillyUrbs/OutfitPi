@@ -60,19 +60,19 @@ jobs:
           echo "PR: $head -> $base"
           case "$base" in
             beta)
-              if [ "$head" = "dev" ] || [[ "$head" == hotfix/* ]]; then
+              if [ "$head" = "dev" ] || [[ "$head" == hotfix/* ]] || [[ "$head" == release-please--* ]]; then
                 echo "OK: $head may be promoted into beta"
                 exit 0
               fi
-              echo "::error::PRs into 'beta' must come from 'dev' or 'hotfix/*' (got '$head')"
+              echo "::error::PRs into 'beta' must come from 'dev', 'hotfix/*', or 'release-please--*' (got '$head')"
               exit 1
               ;;
             main)
-              if [ "$head" = "beta" ] || [[ "$head" == hotfix/* ]]; then
+              if [ "$head" = "beta" ] || [[ "$head" == hotfix/* ]] || [[ "$head" == release-please--* ]]; then
                 echo "OK: $head may be promoted into main"
                 exit 0
               fi
-              echo "::error::PRs into 'main' must come from 'beta' or 'hotfix/*' (got '$head')"
+              echo "::error::PRs into 'main' must come from 'beta', 'hotfix/*', or 'release-please--*' (got '$head')"
               exit 1
               ;;
           esac
