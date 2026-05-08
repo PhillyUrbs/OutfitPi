@@ -235,6 +235,15 @@
             if (lastData) render(lastData);
           });
         });
+        const currentTheme = (window.OutfitPiTheme && localStorage.getItem('outfitpi_theme')) || 'auto';
+        el.querySelectorAll('button[data-theme]').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+          btn.addEventListener('click', () => {
+            const t = btn.dataset.theme;
+            if (window.OutfitPiTheme) window.OutfitPiTheme.set(t);
+            el.querySelectorAll('button[data-theme]').forEach(b => b.classList.toggle('active', b === btn));
+          });
+        });
       }
     } catch {}
   }

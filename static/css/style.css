@@ -309,7 +309,24 @@ legend { font-weight: 700; padding: 0 8px; }
   overflow: hidden;
   box-shadow: 0 -4px 12px rgba(0,0,0,0.4);
 }
-.keyboard-container .simple-keyboard { width: 100%; }
+.keyboard-container .simple-keyboard { width: 100%; background: transparent; }
+/* Force readable key colors regardless of body theme. */
+.keyboard-container .hg-button {
+  background: #fafafa !important;
+  color: #1b2233 !important;
+  border: 1px solid #c6cbd1 !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.15) !important;
+  font-size: 1.15rem !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  font-weight: 600;
+}
+.keyboard-container .hg-button:active,
+.keyboard-container .hg-activeButton {
+  background: var(--orange) !important;
+  color: #fff !important;
+}
+.keyboard-container .hg-button-space { flex-grow: 5; }
 body.kb-open > main { padding-bottom: 45vh; }
 
 /* Restart overlay */
