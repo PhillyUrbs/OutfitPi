@@ -7,6 +7,7 @@
   <title>OutfitPi Settings</title>
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="{{ url_for('static', filename='js/theme.js') }}" defer></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/simple-keyboard/index.css') }}">
 </head>
 <body class="settings-page">
@@ -44,7 +45,7 @@
       <legend>Location</legend>
       <p id="loc-display" class="hint"></p>
       <label>Postal / ZIP code
-        <input type="text" inputmode="text" id="loc-zip" placeholder="e.g. 19468" autocomplete="postal-code">
+        <input type="text" inputmode="numeric" pattern="[0-9A-Za-z\- ]*" id="loc-zip" placeholder="e.g. 19468" autocomplete="postal-code">
       </label>
       <label>Country
         <select id="loc-country">
@@ -108,6 +109,17 @@
     </fieldset>
 
     <fieldset>
+      <legend>Display</legend>
+      <label>Theme
+        <select id="theme">
+          <option value="auto">Auto (light by day, dark at night)</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </label>
+    </fieldset>
+
+    <fieldset>
       <legend>Language</legend>
       <select id="language">
         <option value="en">English</option>
@@ -115,7 +127,6 @@
     </fieldset>
 
     <div class="actions">
-      <button type="button" class="primary" id="save">Save</button>
       <button type="button" class="danger" id="reset">Reset to defaults</button>
     </div>
     <p id="settings-error" class="error" hidden></p>
@@ -125,6 +136,9 @@
   <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
 
   <div id="keyboard-container" class="keyboard-container" hidden>
+    <div class="keyboard-header">
+      <button type="button" id="keyboard-hide" class="keyboard-hide" aria-label="Hide keyboard">⌄ Hide keyboard</button>
+    </div>
     <div class="simple-keyboard"></div>
   </div>
 
@@ -134,6 +148,7 @@
 
   <script src="{{ url_for('static', filename='vendor/simple-keyboard/index.js') }}"></script>
   <script src="{{ url_for('static', filename='js/keyboard.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/drag-scroll.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
 </body>
 </html>

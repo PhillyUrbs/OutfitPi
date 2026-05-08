@@ -3,6 +3,27 @@
   let refreshIntervalMs = 30 * 60 * 1000;
   let refreshTimer = null;
   let devMode = localStorage.getItem('outfitpi_dev_mode') || 'auto'; // auto|day|night
+  let kidsMode = localStorage.getItem('outfitpi_dev_kids') || 'all'; // all|1|2
+  let lastData = null;
+
+  // Dev-only: build a sibling rec of the opposite gender from a given rec,
+  // by swapping the gendered bottom piece. Other fields (reason, tier) kept as-is.
+  function oppositeGenderRec(r) {
+    const sib = { ...r, child_name: 'Sibling' };
+    const swaps = {
+      'shorts': ['dress', 'Dress'],
+      'dress': ['shorts', 'Shorts'],
+      'leggings': ['shorts', 'Shorts'],
+      'pants': ['leggings', 'Leggings'],
+    };
+    // Prefer flipping based on bottom icon since labels vary ("Warm pants").
+    const swap = swaps[r.bottom_icon];
+    if (swap) {
+      sib.bottom_icon = swap[0];
+      sib.bottom = swap[1];
+    }
+    return sib;
+  }
 
   const $ = (id) => document.getElementById(id);
 
@@ -41,7 +62,8 @@
   const icon = (name) => ICONS[name] || ICONS['cloud'];
 
   function setTheme(isDay) {
-    document.body.classList.toggle('night', !isDay);
+    // Dark/light is now driven by user preference (theme.js). Just track
+    // is_day for any styles that key off the .day class.
     document.body.classList.toggle('day', !!isDay);
   }
 
@@ -97,9 +119,12 @@
   }
 
   function render(data) {
+    lastData = data;
     document.body.classList.remove('loading');
     const w = data.weather;
-    const recs = data.recommendations || [];
+    let recs = data.recommendations || [];
+    if (kidsMode === '1' && recs.length > 1) recs = recs.slice(0, 1);
+    else if (kidsMode === '2' && recs.length === 1) recs = [recs[0], oppositeGenderRec(recs[0])];
     const dash = $('dashboard');
 
     if (!w) {
@@ -192,13 +217,31 @@
       if (cfg.updates && cfg.updates.channel === 'dev') {
         const el = $('dev-toggle');
         el.hidden = false;
-        el.querySelectorAll('button').forEach(btn => {
+        el.querySelectorAll('button[data-mode]').forEach(btn => {
           btn.classList.toggle('active', btn.dataset.mode === devMode);
           btn.addEventListener('click', () => {
             devMode = btn.dataset.mode;
             localStorage.setItem('outfitpi_dev_mode', devMode);
-            el.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+            el.querySelectorAll('button[data-mode]').forEach(b => b.classList.toggle('active', b === btn));
             fetchWeather();
+          });
+        });
+        el.querySelectorAll('button[data-kids]').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.kids === kidsMode);
+          btn.addEventListener('click', () => {
+            kidsMode = btn.dataset.kids;
+            localStorage.setItem('outfitpi_dev_kids', kidsMode);
+            el.querySelectorAll('button[data-kids]').forEach(b => b.classList.toggle('active', b === btn));
+            if (lastData) render(lastData);
+          });
+        });
+        const currentTheme = (window.OutfitPiTheme && localStorage.getItem('outfitpi_theme')) || 'auto';
+        el.querySelectorAll('button[data-theme]').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+          btn.addEventListener('click', () => {
+            const t = btn.dataset.theme;
+            if (window.OutfitPiTheme) window.OutfitPiTheme.set(t);
+            el.querySelectorAll('button[data-theme]').forEach(b => b.classList.toggle('active', b === btn));
           });
         });
       }

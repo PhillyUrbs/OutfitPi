@@ -80,6 +80,7 @@ def check_for_update(
     *,
     use_cache: bool = True,
     channel: str = "stable",
+    repo_path: Path | None = None,
 ) -> UpdateInfo:
     """Check for a newer version on the given channel. Caches per-channel for 24h.
 
@@ -101,7 +102,7 @@ def check_for_update(
     owner, name = repo or detect_repo()
 
     if channel == "dev":
-        info = _check_branch(owner, name, "dev", current_version)
+        info = _check_branch(owner, name, "dev", current_version, repo_path=repo_path)
     elif channel == "beta":
         info = _check_releases(owner, name, current_version, include_prereleases=True)
     else:
@@ -166,7 +167,31 @@ def _check_releases(
     )
 
 
-def _check_branch(owner: str, name: str, branch: str, current_version: str) -> UpdateInfo:
+def _local_head_short(repo_path: Path | None) -> str | None:
+    if not repo_path:
+        return None
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short=7", "HEAD"],
+            cwd=str(repo_path),
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        return result.stdout.strip() or None
+    except (FileNotFoundError, subprocess.SubprocessError):
+        return None
+
+
+def _check_branch(
+    owner: str,
+    name: str,
+    branch: str,
+    current_version: str,
+    *,
+    repo_path: Path | None = None,
+) -> UpdateInfo:
     """For dev channel: track branch HEAD by commit SHA (short form)."""
     url = GITHUB_API_BRANCH.format(owner=owner, repo=name, branch=branch)
     try:
@@ -188,8 +213,10 @@ def _check_branch(owner: str, name: str, branch: str, current_version: str) -> U
             message="No commits on dev branch",
         )
     short = sha[:7]
-    # Compare against locally-known HEAD if current_version contains the short sha.
-    available = short not in current_version
+    # Prefer comparing against the local git HEAD; fall back to checking
+    # whether the short SHA appears in the version string.
+    local_short = _local_head_short(repo_path)
+    available = local_short != short if local_short else short not in current_version
     return UpdateInfo(
         available=available,
         current_version=current_version,

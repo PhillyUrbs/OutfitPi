@@ -48,6 +48,7 @@ while true; do
     --ozone-platform-hint=auto \
     --password-store=basic \
     --use-mock-keychain \
+    --touch-events=enabled \
     --start-maximized \
     --window-position=0,0 || true
   sleep 3

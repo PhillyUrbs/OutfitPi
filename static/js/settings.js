@@ -53,6 +53,7 @@
     $('auto-check').checked = cfg.updates.auto_check;
     $('auto-install').checked = cfg.updates.auto_install;
     $('channel').value = cfg.updates.channel;
+    $('theme').value = (cfg.display && cfg.display.theme) || 'auto';
   }
 
   async function load() {
@@ -78,6 +79,7 @@
     out.updates.auto_check = $('auto-check').checked;
     out.updates.auto_install = $('auto-install').checked;
     out.updates.channel = $('channel').value;
+    out.display = { theme: $('theme').value };
     return out;
   }
 
@@ -96,12 +98,18 @@
   });
   $('children-list').addEventListener('click', (e) => {
     const i = e.target.dataset.rm;
-    if (i !== undefined) { cfg.children.splice(parseInt(i, 10), 1); renderChildren(); }
+    if (i !== undefined) { cfg.children.splice(parseInt(i, 10), 1); renderChildren(); autosave(); }
   });
 
-  $('save').addEventListener('click', async () => {
+  let saveTimer = null;
+  let saveInFlight = false;
+  let saveQueued = false;
+
+  async function doSave() {
+    if (saveInFlight) { saveQueued = true; return; }
+    saveInFlight = true;
     const ok = $('settings-ok'), err = $('settings-error');
-    ok.hidden = err.hidden = true;
+    err.hidden = true;
     const payload = collect();
     const wasEnabled = cfg.web_remote.enabled;
     const willChangeBind = wasEnabled !== payload.web_remote.enabled;
@@ -113,7 +121,6 @@
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'Save failed');
-      // If web_remote toggled, hit /api/remote-access to trigger restart.
       if (willChangeBind) {
         const r2 = await fetch('/api/remote-access', {
           method: 'POST',
@@ -124,13 +131,54 @@
         if (j2.warning) alert(j2.warning);
         if (j2.restarting) { $('restart-overlay').hidden = false; setTimeout(() => location.href = '/', 3000); return; }
       }
-      ok.hidden = false;
       cfg = payload;
-      toast('✓ Settings saved');
+      // Sync theme immediately if the user just changed it.
+      if (window.OutfitPiTheme) window.OutfitPiTheme.syncFromConfig(cfg);
+      ok.hidden = false;
+      toast('✓ Saved');
     } catch (e) {
       err.textContent = e.message; err.hidden = false;
       toast('Save failed: ' + e.message, 'err');
+    } finally {
+      saveInFlight = false;
+      if (saveQueued) { saveQueued = false; doSave(); }
     }
+  }
+
+  function autosave() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(doSave, 600);
+  }
+
+  // Apply channel-based defaults: dev/beta → full telemetry; all channels
+  // → auto-install enabled. Runs on channel switch so the user can still
+  // override afterward.
+  function applyChannelDefaults() {
+    const ch = $('channel').value;
+    $('auto-check').checked = true;
+    $('auto-install').checked = true;
+    const tel = (ch === 'dev' || ch === 'beta') ? 'full' : 'errors';
+    const radio = document.querySelector(`input[name="telemetry"][value="${tel}"]`);
+    if (radio) radio.checked = true;
+  }
+  document.getElementById('channel').addEventListener('change', () => {
+    applyChannelDefaults();
+    autosave();
+  });
+  document.querySelector('main.settings-main').addEventListener('input', (e) => {
+    // Skip the ZIP lookup field — it triggers via the Look up button.
+    if (e.target.id === 'loc-zip' || e.target.id === 'loc-country') return;
+    // For free-text inputs, defer save until blur (change event) so we
+    // don't POST after every keystroke. Sliders/checkboxes/selects/numbers
+    // still autosave live.
+    const tag = e.target.tagName;
+    const type = (e.target.type || '').toLowerCase();
+    if (tag === 'INPUT' && (type === 'text' || type === '' || type === 'search')) return;
+    autosave();
+  });
+  document.querySelector('main.settings-main').addEventListener('change', (e) => {
+    if (e.target.id === 'loc-zip' || e.target.id === 'loc-country') return;
+    autosave();
   });
 
   $('reset').addEventListener('click', async () => {
@@ -175,11 +223,14 @@
     $('loc-display').textContent = 'Re-detecting on next save…';
   });
 
-  $('lookup-zip').addEventListener('click', async () => {
+  async function lookupZip({ silent = false } = {}) {
     const zip = $('loc-zip').value.trim();
     const country = $('loc-country').value;
     const out = $('zip-result');
-    if (!zip) { out.textContent = 'Enter a postal code first.'; return; }
+    if (!zip) {
+      if (!silent) out.textContent = 'Enter a postal code first.';
+      return;
+    }
     out.textContent = 'Looking up…';
     try {
       const r = await fetch(`/api/geocode/zip?country=${encodeURIComponent(country)}&zip=${encodeURIComponent(zip)}`);
@@ -188,10 +239,38 @@
       $('loc-lat').value = j.latitude;
       $('loc-lon').value = j.longitude;
       out.textContent = `Found: ${j.city || ''}${j.region ? ', ' + j.region : ''} (${j.latitude}, ${j.longitude})`;
-      toast('✓ ZIP resolved — click Save to apply');
+      toast('✓ ZIP resolved');
+      autosave();
     } catch (e) {
       out.textContent = e.message;
     }
+  }
+
+  $('lookup-zip').addEventListener('click', () => lookupZip());
+
+  // Auto-lookup ZIP when the user taps anywhere outside the field and
+  // the on-screen keyboard. focusin alone misses taps on non-focusable
+  // areas (labels, headings, blank space), so we listen for pointerdown
+  // on the document.
+  let zipDirty = false;
+  let zipLastValue = '';
+  $('loc-zip').addEventListener('focus', () => {
+    zipLastValue = $('loc-zip').value;
+    zipDirty = true;
+  });
+  $('loc-zip').addEventListener('input', () => { zipDirty = true; });
+  document.addEventListener('pointerdown', (e) => {
+    if (!zipDirty) return;
+    const t = e.target;
+    if (t === $('loc-zip')) return;
+    if (t && t.closest && t.closest('.keyboard-container')) return;
+    zipDirty = false;
+    if ($('loc-zip').value.trim() && $('loc-zip').value !== zipLastValue) {
+      lookupZip({ silent: true });
+    }
+  }, true);
+  $('loc-country').addEventListener('change', () => {
+    if ($('loc-zip').value.trim()) lookupZip({ silent: true });
   });
 
   load();
