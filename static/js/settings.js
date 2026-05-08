@@ -223,11 +223,14 @@
     $('loc-display').textContent = 'Re-detecting on next save…';
   });
 
-  $('lookup-zip').addEventListener('click', async () => {
+  async function lookupZip({ silent = false } = {}) {
     const zip = $('loc-zip').value.trim();
     const country = $('loc-country').value;
     const out = $('zip-result');
-    if (!zip) { out.textContent = 'Enter a postal code first.'; return; }
+    if (!zip) {
+      if (!silent) out.textContent = 'Enter a postal code first.';
+      return;
+    }
     out.textContent = 'Looking up…';
     try {
       const r = await fetch(`/api/geocode/zip?country=${encodeURIComponent(country)}&zip=${encodeURIComponent(zip)}`);
@@ -236,10 +239,21 @@
       $('loc-lat').value = j.latitude;
       $('loc-lon').value = j.longitude;
       out.textContent = `Found: ${j.city || ''}${j.region ? ', ' + j.region : ''} (${j.latitude}, ${j.longitude})`;
-      toast('✓ ZIP resolved — click Save to apply');
+      toast('✓ ZIP resolved');
+      autosave();
     } catch (e) {
       out.textContent = e.message;
     }
+  }
+
+  $('lookup-zip').addEventListener('click', () => lookupZip());
+
+  // Auto-lookup when the user finishes typing the ZIP (blur) or changes
+  // the country (and a ZIP is already present).
+  $('loc-zip').addEventListener('change', () => lookupZip({ silent: true }));
+  $('loc-zip').addEventListener('blur', () => lookupZip({ silent: true }));
+  $('loc-country').addEventListener('change', () => {
+    if ($('loc-zip').value.trim()) lookupZip({ silent: true });
   });
 
   load();
