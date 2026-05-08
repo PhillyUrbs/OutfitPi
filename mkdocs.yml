@@ -1,0 +1,53 @@
+site_name: OutfitPi
+site_description: Kid-friendly weather-based outfit recommender for the Raspberry Pi touchscreen.
+site_url: https://phillyurbs.github.io/OutfitPi/
+repo_url: https://github.com/PhillyUrbs/OutfitPi
+repo_name: PhillyUrbs/OutfitPi
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: orange
+      accent: orange
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: orange
+      accent: orange
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - content.code.copy
+    - content.action.edit
+
+nav:
+  - Home: index.md
+  - Setup: setup.md
+  - Daily use: daily-use.md
+  - Settings: settings.md
+  - Updates & channels: updates.md
+  - Troubleshooting: troubleshooting.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+plugins:
+  - search
