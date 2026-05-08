@@ -13,7 +13,7 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           # fetch full history + tags so test_upgrade_path can `git show <tag>`.
           fetch-depth: 0
