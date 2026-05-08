@@ -11,10 +11,7 @@
     ".": {
       "package-name": "outfitpi",
       "extra-files": [
-        {
-          "type": "python",
-          "path": "outfitpi/__init__.py"
-        }
+        "outfitpi/__init__.py"
       ],
       "changelog-sections": [
         { "type": "feat", "section": "Features" },
