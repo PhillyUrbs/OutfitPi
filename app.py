@@ -469,6 +469,8 @@ def main() -> None:
         port = cfg.server.port
         bind_host = "0.0.0.0" if cfg.web_remote.enabled else "127.0.0.1"  # noqa: S104
         _startup_update_thread(cfg)
+    if env_port := os.environ.get("OUTFITPI_PORT"):
+        port = int(env_port)
 
     logger.info("Starting OutfitPi v%s on %s:%s", __version__, bind_host, port)
     app.run(host=bind_host, port=port, debug=False, use_reloader=False)
