@@ -10,7 +10,7 @@ OutfitPi can auto-update from one of three release channels.
 
 Switch channels in **Settings → Updates → Channel**.
 
-![Updates](img/updates.png){ loading=lazy }
+{{ img("updates.png", "Updates") }}
 
 ## Auto-update behavior
 
