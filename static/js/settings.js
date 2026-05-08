@@ -248,9 +248,8 @@
 
   $('lookup-zip').addEventListener('click', () => lookupZip());
 
-  // Auto-lookup when the user finishes typing the ZIP (blur) or changes
-  // the country (and a ZIP is already present).
-  $('loc-zip').addEventListener('change', () => lookupZip({ silent: true }));
+  // Auto-lookup only when the user finishes with the ZIP field (blur),
+  // or switches country with a ZIP already present.
   $('loc-zip').addEventListener('blur', () => lookupZip({ silent: true }));
   $('loc-country').addEventListener('change', () => {
     if ($('loc-zip').value.trim()) lookupZip({ silent: true });

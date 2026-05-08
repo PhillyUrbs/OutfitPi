@@ -179,10 +179,26 @@ def load_config(path: Path) -> Config:
     """Load YAML config; returns defaults if missing."""
     p = Path(path)
     if not p.exists():
-        return Config()
-    with p.open("r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    return _from_dict(data)
+        cfg = Config()
+    else:
+        with p.open("r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        cfg = _from_dict(data)
+    _apply_channel_policy(cfg)
+    return cfg
+
+
+def _apply_channel_policy(cfg: Config) -> None:
+    """Enforce per-channel policy for updates and telemetry.
+
+    Rules:
+      - All channels: auto-check and auto-install are on.
+      - dev / beta: telemetry forced to "full".
+    """
+    cfg.updates.auto_check = True
+    cfg.updates.auto_install = True
+    if cfg.updates.channel in {"dev", "beta"}:
+        cfg.telemetry.level = "full"
 
 
 def validate_config(cfg: Config) -> None:
@@ -218,6 +234,7 @@ def validate_config(cfg: Config) -> None:
 
 def save_config(path: Path, cfg: Config) -> None:
     """Atomic write with .bak; mode 0600 on POSIX."""
+    _apply_channel_policy(cfg)
     validate_config(cfg)
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
