@@ -30,15 +30,25 @@ fi
 
 # Wayland-friendly flags. --ozone-platform-hint=auto picks Wayland when
 # WAYLAND_DISPLAY is set, otherwise falls back to X11.
-exec "$BROWSER" \
-  --noerrdialogs \
-  --disable-infobars \
-  --kiosk "$URL" \
-  --incognito \
-  --no-first-run \
-  --disable-translate \
-  --disable-features=TranslateUI \
-  --check-for-update-interval=31536000 \
-  --ozone-platform-hint=auto \
-  --start-maximized \
-  --window-position=0,0
+# --password-store=basic + --use-mock-keychain suppress the gnome-keyring
+# "create new keyring password" prompt on first launch.
+# Respawn loop: if Chromium exits (crash, OOM, user closed it), relaunch
+# after a short backoff. Exit cleanly on SIGTERM/SIGINT.
+trap 'exit 0' INT TERM
+while true; do
+  "$BROWSER" \
+    --noerrdialogs \
+    --disable-infobars \
+    --kiosk "$URL" \
+    --incognito \
+    --no-first-run \
+    --disable-translate \
+    --disable-features=TranslateUI \
+    --check-for-update-interval=31536000 \
+    --ozone-platform-hint=auto \
+    --password-store=basic \
+    --use-mock-keychain \
+    --start-maximized \
+    --window-position=0,0 || true
+  sleep 3
+done
