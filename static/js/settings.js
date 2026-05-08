@@ -16,9 +16,11 @@
     toastTimer = setTimeout(() => { t.hidden = true; }, 3000);
   }
 
-  // Show the restart overlay and reload only once the server is healthy.
-  // Polls /api/health up to ~120s; if previousVersion is given, also waits
-  // until the reported version differs (i.e. the new build is running).
+  // Show the restart overlay and reload only once the server has actually
+  // gone down and come back up. Polls /api/health up to ~120s. If
+  // previousVersion is given, also requires the reported version to differ
+  // (i.e. the new build is running). Without that, requires at least one
+  // failed health check (server going down) before accepting a 200.
   async function waitForRestartAndReload(opts = {}) {
     const overlay = $('restart-overlay');
     const msgEl = overlay.querySelector('.restart-msg');
@@ -26,18 +28,30 @@
     overlay.hidden = false;
     const startVersion = opts.previousVersion || null;
     const deadline = Date.now() + 120000;
-    await new Promise(r => setTimeout(r, 1500));
+    let sawDown = false;
+    // Give the server a moment to actually start shutting down.
+    await new Promise(r => setTimeout(r, 2000));
     while (Date.now() < deadline) {
       try {
         const r = await fetch('/api/health', { cache: 'no-store' });
         if (r.ok) {
           const j = await r.json().catch(() => ({}));
-          if (!startVersion || j.version !== startVersion) {
+          if (startVersion) {
+            if (j.version && j.version !== startVersion) {
+              location.href = opts.redirect || '/';
+              return;
+            }
+            // Same version still reporting — server hasn't restarted yet.
+          } else if (sawDown) {
             location.href = opts.redirect || '/';
             return;
           }
+        } else {
+          sawDown = true;
         }
-      } catch {}
+      } catch {
+        sawDown = true;
+      }
       await new Promise(r => setTimeout(r, 1000));
     }
     location.href = opts.redirect || '/';
@@ -265,7 +279,7 @@
     if (j.ok) {
       await waitForRestartAndReload({
         message: `${message}<br><small>This usually takes 10–30 seconds.</small>`,
-        previousVersion: null,
+        previousVersion: prevVersion,
       });
     } else {
       $('update-status').textContent = 'Update failed: ' + (j.message || 'unknown');
