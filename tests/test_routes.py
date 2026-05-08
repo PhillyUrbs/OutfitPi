@@ -32,7 +32,7 @@ def test_index_returns_200(client, mock_weather):
     body = resp.get_data(as_text=True)
     # Index is JS-rendered; verify shell loads correctly
     assert "OutfitPi" in body
-    assert "outfits" in body
+    assert "dashboard" in body
 
 
 def test_api_weather_json(client, mock_weather):
