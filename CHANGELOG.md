@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/PhillyUrbs/OutfitPi/compare/v0.5.0...v0.5.1) (2026-05-08)
+
+
+### Documentation
+
+* mkdocs site + screenshot capture ([#29](https://github.com/PhillyUrbs/OutfitPi/issues/29)) ([f02011d](https://github.com/PhillyUrbs/OutfitPi/commit/f02011d29c988ad4fd400b82d0de32c743e0b004))
+* versioned (mike) + placeholder image macro ([#34](https://github.com/PhillyUrbs/OutfitPi/issues/34)) ([7b7a398](https://github.com/PhillyUrbs/OutfitPi/commit/7b7a398dec5deca7d980a83de82a02346861dbc5))
+
 ## [0.5.0](https://github.com/PhillyUrbs/OutfitPi/compare/v0.4.0...v0.5.0) (2026-05-08)
 
 
