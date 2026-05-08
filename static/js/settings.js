@@ -248,17 +248,26 @@
 
   $('lookup-zip').addEventListener('click', () => lookupZip());
 
-  // Auto-lookup only when focus actually leaves the ZIP field for
-  // something that isn't the on-screen keyboard. Tapping keyboard keys
-  // briefly blurs the input, so a naive blur listener would fire after
-  // every keystroke.
-  $('loc-zip').addEventListener('blur', () => {
-    setTimeout(() => {
-      const a = document.activeElement;
-      if (a && a.closest && a.closest('.keyboard-container')) return;
-      if (a === $('loc-zip')) return;
+  // Auto-lookup when the ZIP field has been "left" — i.e. focus has
+  // moved off the input AND off the on-screen keyboard onto some other
+  // page element. Track active ZIP focus, then watch document focusin.
+  let zipDirty = false;
+  let zipLastValue = '';
+  $('loc-zip').addEventListener('focus', () => {
+    zipLastValue = $('loc-zip').value;
+    zipDirty = true;
+  });
+  $('loc-zip').addEventListener('input', () => { zipDirty = true; });
+  document.addEventListener('focusin', (e) => {
+    if (!zipDirty) return;
+    const t = e.target;
+    if (t === $('loc-zip')) return;
+    if (t && t.closest && t.closest('.keyboard-container')) return;
+    // Focus moved to a real other element — finalize ZIP entry.
+    zipDirty = false;
+    if ($('loc-zip').value.trim() && $('loc-zip').value !== zipLastValue) {
       lookupZip({ silent: true });
-    }, 50);
+    }
   });
   $('loc-country').addEventListener('change', () => {
     if ($('loc-zip').value.trim()) lookupZip({ silent: true });
