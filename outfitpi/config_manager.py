@@ -60,7 +60,7 @@ class Thresholds:
 @dataclass
 class Updates:
     auto_check: bool = True
-    auto_install: bool = False
+    auto_install: bool = True
     channel: str = "stable"
 
 

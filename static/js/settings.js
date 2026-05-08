@@ -150,7 +150,21 @@
     saveTimer = setTimeout(doSave, 600);
   }
 
-  // Wire autosave on every form control inside the settings page.
+  // Apply channel-based defaults: dev/beta → full telemetry; all channels
+  // → auto-install enabled. Runs on channel switch so the user can still
+  // override afterward.
+  function applyChannelDefaults() {
+    const ch = $('channel').value;
+    $('auto-check').checked = true;
+    $('auto-install').checked = true;
+    const tel = (ch === 'dev' || ch === 'beta') ? 'full' : 'errors';
+    const radio = document.querySelector(`input[name="telemetry"][value="${tel}"]`);
+    if (radio) radio.checked = true;
+  }
+  document.getElementById('channel').addEventListener('change', () => {
+    applyChannelDefaults();
+    autosave();
+  });
   document.querySelector('main.settings-main').addEventListener('input', (e) => {
     // Skip the ZIP lookup field — it triggers via the Look up button.
     if (e.target.id === 'loc-zip' || e.target.id === 'loc-country') return;
