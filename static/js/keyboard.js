@@ -78,12 +78,22 @@
     return inputmode === 'numeric' || inputmode === 'decimal' || inputmode === 'tel';
   }
 
+  function scrollFieldToTop(el) {
+    // Find the scrollable settings/setup main; fall back to no-op.
+    const scroller = el.closest('main');
+    if (!scroller) return;
+    const elRect = el.getBoundingClientRect();
+    const scRect = scroller.getBoundingClientRect();
+    // Position the field ~12px below the top of the scroller.
+    const delta = elRect.top - scRect.top - 12;
+    scroller.scrollTo({ top: scroller.scrollTop + delta, behavior: 'smooth' });
+  }
+
   function show(el) {
     activeInput = el;
     kb.setInput(el.value || '');
     container.hidden = false;
     document.body.classList.add('kb-open');
-    // Numeric inputs get a digits-only layout with no shift/abc.
     if (isNumericInput(el)) {
       layoutName = 'numeric';
       kb.setOptions({ layoutName });
@@ -91,7 +101,9 @@
       layoutName = 'default';
       kb.setOptions({ layoutName });
     }
-    setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50);
+    // Wait for the keyboard to actually expand (kb-open changes main padding)
+    // before measuring + scrolling.
+    setTimeout(() => scrollFieldToTop(el), 80);
   }
   function hide() {
     container.hidden = true;
