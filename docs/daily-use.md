@@ -3,7 +3,7 @@
 The dashboard refreshes every 30 minutes and shows two panes per child plus the
 current weather.
 
-![Dashboard](img/dashboard.png){ loading=lazy }
+{{ img("dashboard.png", "Dashboard") }}
 
 ## Reading a recommendation
 

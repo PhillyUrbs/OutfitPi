@@ -51,3 +51,10 @@ markdown_extensions:
 
 plugins:
   - search
+  - macros:
+      module_name: docs/macros
+
+extra:
+  version:
+    provider: mike
+    default: latest
