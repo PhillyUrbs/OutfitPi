@@ -77,6 +77,7 @@ if [[ "$SETUP_KIOSK" == "1" ]]; then
   if ! command -v chromium >/dev/null 2>&1 && ! command -v chromium-browser >/dev/null 2>&1; then
     sudo apt-get install -y chromium || sudo apt-get install -y chromium-browser
   fi
+  chmod +x "$INSTALL_DIR/scripts/kiosk.sh"
   AUTOSTART_DIR="$HOME/.config/autostart"
   mkdir -p "$AUTOSTART_DIR"
   cat > "$AUTOSTART_DIR/outfitpi-kiosk.desktop" <<EOF

@@ -1,3 +1,3 @@
 """OutfitPi — kid-friendly weather-based outfit recommender."""
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
