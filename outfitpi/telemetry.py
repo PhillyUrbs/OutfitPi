@@ -76,6 +76,10 @@ def init_sentry(level: str, version: str, child_names_provider) -> None:
     """
     if level not in {"errors", "full"}:
         return
+    # Never run telemetry under pytest; the SDK installs an atexit hook that
+    # flushes events and forces a non-zero exit code on Python 3.13.
+    if "PYTEST_CURRENT_TEST" in os.environ or os.environ.get("OUTFITPI_DISABLE_SENTRY"):
+        return
     try:
         import sentry_sdk
         from sentry_sdk.integrations.flask import FlaskIntegration
