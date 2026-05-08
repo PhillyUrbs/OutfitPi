@@ -319,7 +319,7 @@ legend { font-weight: 700; padding: 0 8px; }
   position: fixed;
   bottom: 0; left: 0; right: 0;
   background: #2a2a2a;
-  padding: 8px;
+  padding: 4px 6px 6px;
   z-index: 100;
   display: flex;
   flex-direction: column;
@@ -327,10 +327,11 @@ legend { font-weight: 700; padding: 0 8px; }
 }
 .keyboard-container[hidden] { display: none; }
 .keyboard-container .simple-keyboard { width: 100%; background: transparent; flex: 0 0 auto; }
+.keyboard-container .hg-row { margin-bottom: 3px; }
 .keyboard-header {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   flex: 0 0 auto;
 }
 .keyboard-hide {
@@ -338,10 +339,10 @@ legend { font-weight: 700; padding: 0 8px; }
   color: #fff;
   border: 1px solid #777;
   border-radius: 6px;
-  padding: 6px 14px;
-  font-size: 0.95rem;
+  padding: 3px 10px;
+  font-size: 0.85rem;
   font-weight: 600;
-  min-height: 36px;
+  min-height: 28px;
   cursor: pointer;
 }
 .keyboard-hide:active { background: var(--orange); border-color: var(--orange); }
@@ -351,9 +352,10 @@ legend { font-weight: 700; padding: 0 8px; }
   color: #1b2233 !important;
   border: 1px solid #c6cbd1 !important;
   box-shadow: 0 1px 0 rgba(0,0,0,0.15) !important;
-  font-size: 1.15rem !important;
-  height: 48px !important;
-  min-height: 48px !important;
+  font-size: 0.95rem !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 4px !important;
   font-weight: 600;
 }
 .keyboard-container .hg-button:active,
@@ -362,7 +364,7 @@ legend { font-weight: 700; padding: 0 8px; }
   color: #fff !important;
 }
 .keyboard-container .hg-button-space { flex-grow: 5; }
-body.kb-open > main { padding-bottom: 55vh; }
+body.kb-open > main { padding-bottom: 38vh; }
 
 /* Restart overlay */
 .restart-overlay {
