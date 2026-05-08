@@ -67,23 +67,26 @@ systemctl --user restart "${SERVICE_NAME}.service" || \
 loginctl enable-linger "$USER_NAME" 2>/dev/null || true
 
 # 6. Optional kiosk prompt
-if [[ -t 0 ]]; then
-  read -r -p "Set up Chromium kiosk for the touchscreen? [y/N] " yn
-  if [[ "$yn" =~ ^[Yy]$ ]]; then
-    if ! command -v chromium >/dev/null 2>&1 && ! command -v chromium-browser >/dev/null 2>&1; then
-      sudo apt-get install -y chromium || sudo apt-get install -y chromium-browser
-    fi
-    AUTOSTART_DIR="$HOME/.config/autostart"
-    mkdir -p "$AUTOSTART_DIR"
-    cat > "$AUTOSTART_DIR/outfitpi-kiosk.desktop" <<EOF
+# Set OUTFITPI_KIOSK=1 to install non-interactively, or =0 to skip.
+SETUP_KIOSK="${OUTFITPI_KIOSK:-}"
+if [[ -z "$SETUP_KIOSK" && -t 0 ]]; then
+  read -r -p "Set up Chromium kiosk for the touchscreen? [Y/n] " yn
+  [[ "$yn" =~ ^[Nn]$ ]] && SETUP_KIOSK=0 || SETUP_KIOSK=1
+fi
+if [[ "$SETUP_KIOSK" == "1" ]]; then
+  if ! command -v chromium >/dev/null 2>&1 && ! command -v chromium-browser >/dev/null 2>&1; then
+    sudo apt-get install -y chromium || sudo apt-get install -y chromium-browser
+  fi
+  AUTOSTART_DIR="$HOME/.config/autostart"
+  mkdir -p "$AUTOSTART_DIR"
+  cat > "$AUTOSTART_DIR/outfitpi-kiosk.desktop" <<EOF
 [Desktop Entry]
 Type=Application
 Name=OutfitPi Kiosk
 Exec=$INSTALL_DIR/scripts/kiosk.sh
 X-GNOME-Autostart-enabled=true
 EOF
-    echo "Kiosk autostart installed: $AUTOSTART_DIR/outfitpi-kiosk.desktop"
-  fi
+  echo "Kiosk autostart installed: $AUTOSTART_DIR/outfitpi-kiosk.desktop"
 fi
 
 # 7. Print LAN IP for setup wizard
