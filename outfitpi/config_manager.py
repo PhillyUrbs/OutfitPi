@@ -15,7 +15,14 @@ import yaml
 VALID_GENDERS = {"boy", "girl"}
 VALID_UNITS = {"fahrenheit", "celsius"}
 VALID_TELEMETRY = {"none", "errors", "full"}
-VALID_CHANNELS = {"releases", "main"}
+VALID_CHANNELS = {"stable", "beta", "dev"}
+# Map legacy channel names to current ones for backward compatibility.
+_CHANNEL_ALIASES = {"releases": "stable", "main": "dev"}
+
+
+def _normalize_channel(value: str) -> str:
+    v = str(value or "stable").strip().lower()
+    return _CHANNEL_ALIASES.get(v, v)
 
 
 class ConfigError(ValueError):
@@ -53,7 +60,7 @@ class Thresholds:
 class Updates:
     auto_check: bool = True
     auto_install: bool = False
-    channel: str = "releases"
+    channel: str = "stable"
 
 
 @dataclass
@@ -142,7 +149,7 @@ def _from_dict(data: dict[str, Any]) -> Config:
     cfg.updates = Updates(
         auto_check=bool(upd.get("auto_check", True)),
         auto_install=bool(upd.get("auto_install", False)),
-        channel=str(upd.get("channel", "releases")),
+        channel=_normalize_channel(upd.get("channel", "stable")),
     )
 
     tel = data.get("telemetry") or {}

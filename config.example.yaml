@@ -39,7 +39,7 @@ refresh_interval_minutes: 30
 updates:
   auto_check: true
   auto_install: false
-  channel: releases  # "releases" or "main"
+  channel: stable  # "stable" | "beta" | "dev"
 
 telemetry:
   # "none" | "errors" | "full"

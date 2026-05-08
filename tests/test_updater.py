@@ -117,3 +117,48 @@ def test_check_update_invalid_version_tag():
     with patch("outfitpi.updater.httpx.get", return_value=_release_response("not-a-version")):
         info = check_for_update("0.1.0", repo=("PhillyUrbs", "OutfitPi"), use_cache=False)
     assert info.available is False
+
+
+def test_beta_channel_picks_latest_prerelease():
+    releases = [
+        {"tag_name": "v0.2.0", "html_url": "x", "body": "stable", "draft": False, "prerelease": False},
+        {"tag_name": "v0.3.0-beta.1", "html_url": "y", "body": "beta", "draft": False, "prerelease": True},
+    ]
+    resp = MagicMock()
+    resp.json.return_value = releases
+    resp.raise_for_status = MagicMock()
+    with patch("outfitpi.updater.httpx.get", return_value=resp):
+        info = check_for_update(
+            "0.2.0", repo=("PhillyUrbs", "OutfitPi"), use_cache=False, channel="beta"
+        )
+    assert info.available is True
+    assert info.latest_version == "0.3.0b1"
+    assert info.channel == "beta"
+
+
+def test_dev_channel_uses_branch_head():
+    resp = MagicMock()
+    resp.json.return_value = {
+        "commit": {"sha": "abcdef1234567890", "commit": {"message": "wip"}}
+    }
+    resp.raise_for_status = MagicMock()
+    with patch("outfitpi.updater.httpx.get", return_value=resp):
+        info = check_for_update(
+            "0.2.0", repo=("PhillyUrbs", "OutfitPi"), use_cache=False, channel="dev"
+        )
+    assert info.channel == "dev"
+    assert info.latest_version == "dev@abcdef1"
+    assert info.available is True
+
+
+def test_dev_channel_not_available_when_sha_matches():
+    resp = MagicMock()
+    resp.json.return_value = {
+        "commit": {"sha": "abcdef1234567890", "commit": {"message": "wip"}}
+    }
+    resp.raise_for_status = MagicMock()
+    with patch("outfitpi.updater.httpx.get", return_value=resp):
+        info = check_for_update(
+            "0.2.0+abcdef1", repo=("PhillyUrbs", "OutfitPi"), use_cache=False, channel="dev"
+        )
+    assert info.available is False

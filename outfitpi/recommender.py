@@ -92,6 +92,8 @@ def recommend_outfit(
     thresholds: Thresholds,
     display_unit: str = "fahrenheit",
     now: datetime | None = None,
+    *,
+    force_evening: bool | None = None,
 ) -> OutfitRecommendation:
     if weather is None:
         return OutfitRecommendation(
@@ -106,7 +108,8 @@ def recommend_outfit(
             unavailable=True,
         )
 
-    if _is_evening(weather, now):
+    is_evening = force_evening if force_evening is not None else _is_evening(weather, now)
+    if is_evening:
         return OutfitRecommendation(
             child_name=child.name,
             top="Pajamas",
@@ -185,5 +188,10 @@ def recommend_all(
     thresholds: Thresholds,
     display_unit: str = "fahrenheit",
     now: datetime | None = None,
+    *,
+    force_evening: bool | None = None,
 ) -> list[OutfitRecommendation]:
-    return [recommend_outfit(weather, c, thresholds, display_unit, now) for c in children]
+    return [
+        recommend_outfit(weather, c, thresholds, display_unit, now, force_evening=force_evening)
+        for c in children
+    ]

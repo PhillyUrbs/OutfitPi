@@ -2,6 +2,7 @@
 (() => {
   let refreshIntervalMs = 30 * 60 * 1000;
   let refreshTimer = null;
+  let devMode = localStorage.getItem('outfitpi_dev_mode') || 'auto'; // auto|day|night
 
   const $ = (id) => document.getElementById(id);
 
@@ -148,7 +149,10 @@
 
   async function fetchWeather() {
     try {
-      const resp = await fetch('/api/weather');
+      const url = devMode && devMode !== 'auto'
+        ? `/api/weather?mode=${encodeURIComponent(devMode)}`
+        : '/api/weather';
+      const resp = await fetch(url);
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
         if (err.error === 'location_not_configured') { window.location.href = '/setup'; return; }
@@ -181,11 +185,33 @@
 
   setInterval(checkUpdate, 5 * 60 * 1000);
 
+  async function initDevToggle() {
+    try {
+      const r = await fetch('/api/settings');
+      const cfg = await r.json();
+      if (cfg.updates && cfg.updates.channel === 'dev') {
+        const el = $('dev-toggle');
+        el.hidden = false;
+        el.querySelectorAll('button').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.mode === devMode);
+          btn.addEventListener('click', () => {
+            devMode = btn.dataset.mode;
+            localStorage.setItem('outfitpi_dev_mode', devMode);
+            el.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+            fetchWeather();
+          });
+        });
+      }
+    } catch {}
+  }
+
   document.addEventListener('click', (e) => {
     if (e.target.closest('#settings-btn')) return;
+    if (e.target.closest('#dev-toggle')) return;
     if (e.target.closest('.pane')) fetchWeather();
   });
 
   fetchWeather();
   checkUpdate();
+  initDevToggle();
 })();

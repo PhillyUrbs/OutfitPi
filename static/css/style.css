@@ -340,3 +340,41 @@ legend { font-weight: 700; padding: 0 8px; }
 @media (max-width: 600px) {
   html, body { font-size: 16px; }
 }
+
+/* Dev-only Day/Night override toggle */
+.dev-toggle {
+  position: fixed;
+  left: 12px;
+  bottom: 44px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  background: rgba(0,0,0,0.65);
+  border-radius: 8px;
+  z-index: 900;
+  font-size: 0.75rem;
+}
+.dev-toggle[hidden] { display: none; }
+.dev-toggle-label {
+  color: #ffd93d;
+  font-weight: 700;
+  padding: 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.dev-toggle button {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  min-height: 0;
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 4px;
+  font-weight: 500;
+}
+.dev-toggle button.active {
+  background: var(--orange);
+  color: #fff;
+  border-color: var(--orange);
+}

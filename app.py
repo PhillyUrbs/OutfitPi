@@ -26,6 +26,7 @@ from outfitpi.config_manager import (
     Units,
     Updates,
     WebRemote,
+    _normalize_channel,
     config_exists,
     load_config,
     save_config,
@@ -157,7 +158,18 @@ def create_app(config_path: Path | None = None) -> Flask:
             return jsonify({"error": "location_error", "detail": str(exc)}), 502
 
         weather = fetch_current_weather(loc.latitude, loc.longitude, cfg.units.temperature)
-        recs = recommend_all(weather, cfg.children, cfg.thresholds, cfg.units.temperature)
+
+        # Dev-only override: ?mode=day|night|auto forces the recommender into a
+        # given mode regardless of clock/sunset. Only honored on the dev channel.
+        force_evening: bool | None = None
+        mode = (request.args.get("mode") or "auto").lower()
+        if cfg.updates.channel == "dev" and mode in {"day", "night"}:
+            force_evening = mode == "night"
+
+        recs = recommend_all(
+            weather, cfg.children, cfg.thresholds, cfg.units.temperature,
+            force_evening=force_evening,
+        )
 
         return jsonify(
             {
@@ -237,14 +249,16 @@ def create_app(config_path: Path | None = None) -> Flask:
     # ── Routes: updates ──────────────────────────────────────────────────
     @app.get("/api/update/check")
     def api_update_check():
-        info = check_for_update(__version__, detect_repo(BASE_DIR))
+        cfg = load_config(cfg_path) if config_exists(cfg_path) else Config()
+        info = check_for_update(__version__, detect_repo(BASE_DIR), channel=cfg.updates.channel)
         return jsonify(asdict(info))
 
     @app.post("/api/update/install")
     def api_update_install():
+        cfg = load_config(cfg_path) if config_exists(cfg_path) else Config()
         venv_pip = BASE_DIR / "venv" / "bin" / "pip"
         venv_pip = venv_pip if venv_pip.exists() else None
-        ok, msg = perform_update(BASE_DIR, venv_pip=venv_pip)
+        ok, msg = perform_update(BASE_DIR, venv_pip=venv_pip, channel=cfg.updates.channel)
         if ok:
             schedule_restart()
             return jsonify({"ok": True, "message": msg, "restarting": True, "delay": 2})
@@ -355,7 +369,7 @@ def _build_config_from_payload(data: dict[str, Any]) -> Config:
     cfg.updates = Updates(
         auto_check=bool(upd.get("auto_check", True)),
         auto_install=bool(upd.get("auto_install", False)),
-        channel=str(upd.get("channel", "releases")),
+        channel=_normalize_channel(upd.get("channel", "stable")),
     )
 
     tel = data.get("telemetry") or {}
@@ -377,12 +391,12 @@ def _startup_update_thread(cfg: Config) -> None:
 
     def _worker():
         try:
-            info = check_for_update(__version__, detect_repo(BASE_DIR))
+            info = check_for_update(__version__, detect_repo(BASE_DIR), channel=cfg.updates.channel)
             if info.available and cfg.updates.auto_install:
                 logger.info("Auto-installing update %s", info.latest_version)
                 venv_pip = BASE_DIR / "venv" / "bin" / "pip"
                 venv_pip = venv_pip if venv_pip.exists() else None
-                ok, msg = perform_update(BASE_DIR, venv_pip=venv_pip)
+                ok, msg = perform_update(BASE_DIR, venv_pip=venv_pip, channel=cfg.updates.channel)
                 if ok:
                     schedule_restart()
                 else:

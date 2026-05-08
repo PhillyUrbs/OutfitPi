@@ -68,7 +68,7 @@ def test_api_setup_creates_config(fresh_app, fresh_client):
         },
         "children": [{"name": "Tommy", "gender": "boy", "comfort_offset_f": 0}],
         "thresholds": {"hot": 75, "warm": 65, "cool": 50},
-        "updates": {"auto_check": True, "auto_install": False, "channel": "releases"},
+        "updates": {"auto_check": True, "auto_install": False, "channel": "stable"},
         "telemetry": {"level": "none"},
         "web_remote": {"enabled": False},
     }
