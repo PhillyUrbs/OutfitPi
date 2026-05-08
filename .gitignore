@@ -31,3 +31,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Docs site build output
+/_site/
+docs/img/*.png
