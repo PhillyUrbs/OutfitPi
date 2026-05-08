@@ -307,6 +307,42 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .dev-install[hidden] { display: none; }
 .dev-install select, .dev-install input { width: 100%; }
+
+.ref-list {
+  max-height: 240px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  background: #fff;
+  border: 1px solid #c6cbd1;
+  border-radius: 8px;
+  padding: 4px;
+}
+body.night .ref-list { background: #1f2a44; border-color: #344066; }
+.ref-group {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.6;
+  padding: 8px 8px 4px;
+}
+.ref-item {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  min-height: 44px;
+  justify-content: center;
+}
+.ref-item + .ref-item { margin-top: 2px; }
+.ref-item:active { background: rgba(255,159,67,0.18); }
+.ref-item.selected { background: var(--orange); color: #fff; }
+.ref-primary { font-weight: 600; font-size: 0.95rem; }
+.ref-secondary { font-size: 0.78rem; opacity: 0.75; margin-top: 2px; }
+.ref-item.selected .ref-secondary { opacity: 0.95; }
+.ref-list-empty { padding: 16px; opacity: 0.6; text-align: center; }
 fieldset {
   border: 2px solid #d0d7e2;
   border-radius: var(--radius);

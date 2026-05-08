@@ -243,7 +243,7 @@
   });
 
   $('force-update').addEventListener('click', async () => {
-    const ref = ($('dev-ref-input').value.trim() || $('dev-ref-select').value || '').trim();
+    const ref = ($('dev-ref-input').value.trim() || selectedRef || '').trim();
     const label = ref || 'current dev HEAD';
     if (!confirm(`Force install ${label}? OutfitPi will restart.`)) return;
     runInstall(`Installing ${label}…`, ref || null);
@@ -273,6 +273,7 @@
   }
 
   let devRefsLoaded = false;
+  let selectedRef = '';
   async function toggleDevInstall(show) {
     $('dev-install').hidden = !show;
     if (!show || devRefsLoaded) return;
@@ -281,23 +282,45 @@
       const r = await fetch('/api/update/refs');
       if (!r.ok) return;
       const data = await r.json();
-      const sel = $('dev-ref-select');
-      sel.innerHTML = '<option value="">— dev HEAD (latest) —</option>';
-      const optgroup = (label, items) => {
-        if (!items || !items.length) return;
-        const og = document.createElement('optgroup');
-        og.label = label;
-        items.forEach(it => {
-          const o = document.createElement('option');
-          o.value = it.ref;
-          const subj = it.subject ? ` — ${it.subject.slice(0, 50)}` : '';
-          o.textContent = `${it.ref}${it.date ? ' (' + it.date + ')' : ''}${subj}`;
-          og.appendChild(o);
-        });
-        sel.appendChild(og);
+      const list = $('dev-ref-list');
+      list.innerHTML = '';
+      const addItem = (ref, primary, secondary) => {
+        const div = document.createElement('div');
+        div.className = 'ref-item';
+        div.dataset.ref = ref;
+        div.setAttribute('role', 'option');
+        div.innerHTML = `<span class="ref-primary">${primary}</span>` +
+          (secondary ? `<span class="ref-secondary">${secondary}</span>` : '');
+        list.appendChild(div);
       };
-      optgroup('Tags', data.tags);
-      optgroup('Recent dev commits', data.commits);
+      const addHeader = (label) => {
+        const h = document.createElement('div');
+        h.className = 'ref-group';
+        h.textContent = label;
+        list.appendChild(h);
+      };
+      addItem('', 'dev HEAD (latest)', 'origin/dev');
+      if (data.tags && data.tags.length) {
+        addHeader('Tags');
+        data.tags.forEach(it => addItem(it.ref, it.ref, `${it.date}${it.subject ? ' — ' + it.subject : ''}`));
+      }
+      if (data.commits && data.commits.length) {
+        addHeader('Recent dev commits');
+        data.commits.forEach(it => addItem(it.ref, it.ref, `${it.date}${it.subject ? ' — ' + it.subject : ''}`));
+      }
+      // Default selection = dev HEAD.
+      const first = list.querySelector('.ref-item');
+      if (first) {
+        first.classList.add('selected');
+        selectedRef = first.dataset.ref;
+      }
+      list.addEventListener('click', (e) => {
+        const item = e.target.closest('.ref-item');
+        if (!item) return;
+        list.querySelectorAll('.ref-item.selected').forEach(n => n.classList.remove('selected'));
+        item.classList.add('selected');
+        selectedRef = item.dataset.ref || '';
+      });
     } catch {}
   }
 
