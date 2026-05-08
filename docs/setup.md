@@ -27,7 +27,7 @@ official 7" touchscreen.
     - Setting the location by ZIP/postal code (or using auto-IP geolocation).
     - Picking units (°F or °C).
 
-![Setup wizard](img/setup.png){ loading=lazy }
+{{ img("setup.png", "Setup wizard") }}
 
 ## Kiosk mode
 

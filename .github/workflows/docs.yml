@@ -3,16 +3,16 @@ on:
   pull_request:
     branches: [beta, main]
   push:
-    branches: [beta, main]
+    branches: [dev, beta, main]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
 concurrency:
-  group: pages-${{ github.ref }}
+  group: docs-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -30,28 +30,55 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install -e .[dev] mkdocs-material playwright
+          pip install -e .[dev] mkdocs-material mkdocs-macros-plugin mike playwright pillow
+      - name: Capture screenshots (beta/main only)
+        if: github.ref == 'refs/heads/beta' || github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && (github.base_ref == 'beta' || github.base_ref == 'main'))
+        run: |
           playwright install --with-deps chromium
-      - name: Capture screenshots
-        env:
-          OUTFITPI_DOCS_MODE: "1"
-        run: python scripts/capture_docs_screenshots.py
-      - name: Build site
+          python scripts/capture_docs_screenshots.py
+      - name: Build site (strict)
         run: mkdocs build --strict --site-dir _site
-      - name: Upload artifact
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
 
   deploy:
-    name: deploy-pages
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    name: deploy-docs
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/beta' || github.ref == 'refs/heads/main')
     needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev] mkdocs-material mkdocs-macros-plugin mike playwright pillow
+          playwright install --with-deps chromium
+      - name: Capture screenshots
+        run: python scripts/capture_docs_screenshots.py
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Compute version slug
+        id: ver
+        run: |
+          ver=$(python -c "import outfitpi; print(outfitpi.__version__)")
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+          # Major.minor only (drop patch + prerelease suffix) to keep aliases tidy.
+          short=$(echo "$ver" | sed -E 's/^([0-9]+\.[0-9]+).*/\1/')
+          echo "short=$short" >> "$GITHUB_OUTPUT"
+      - name: Deploy to mike (main = latest)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mike deploy --push --update-aliases "${{ steps.ver.outputs.short }}" latest
+          mike set-default --push latest
+      - name: Deploy to mike (beta)
+        if: github.ref == 'refs/heads/beta'
+        run: |
+          mike deploy --push --update-aliases "${{ steps.ver.outputs.short }}-beta" beta
+
