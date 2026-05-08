@@ -81,11 +81,24 @@
     const t = e.target;
     if (t && (t.tagName === 'INPUT') && (t.type === 'text' || t.type === 'number')) {
       show(t);
-    } else {
+    } else if (t && !t.closest('.keyboard-container')) {
       hide();
     }
   });
   document.addEventListener('input', (e) => {
     if (activeInput && e.target === activeInput) kb.setInput(activeInput.value);
   });
+
+  const hideBtn = document.getElementById('keyboard-hide');
+  if (hideBtn) {
+    hideBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (activeInput) activeInput.blur();
+      hide();
+    });
+    // Don't let mousedown on the hide button steal focus from the input
+    // and trigger our focusin/hide cycle.
+    hideBtn.addEventListener('mousedown', (e) => e.preventDefault());
+    hideBtn.addEventListener('pointerdown', (e) => e.preventDefault());
+  }
 })();

@@ -60,6 +60,18 @@ body.setup > main {
   touch-action: pan-y;
   overscroll-behavior: contain;
   padding-bottom: 48px;
+  /* Prevent accidental text highlight while drag-scrolling. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+/* Inputs still need normal text selection so the user can edit. */
+body.settings-page input,
+body.settings-page textarea,
+body.setup input,
+body.setup textarea {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .topbar {
@@ -310,6 +322,23 @@ legend { font-weight: 700; padding: 0 8px; }
   box-shadow: 0 -4px 12px rgba(0,0,0,0.4);
 }
 .keyboard-container .simple-keyboard { width: 100%; background: transparent; }
+.keyboard-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+.keyboard-hide {
+  background: #555;
+  color: #fff;
+  border: 1px solid #777;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  min-height: 36px;
+  cursor: pointer;
+}
+.keyboard-hide:active { background: var(--orange); border-color: var(--orange); }
 /* Force readable key colors regardless of body theme. */
 .keyboard-container .hg-button {
   background: #fafafa !important;
