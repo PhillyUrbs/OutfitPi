@@ -1,0 +1,51 @@
+name: Auto-merge Dependabot security PRs
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    # Only act on Dependabot PRs.
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Decide whether to auto-merge
+        id: decide
+        env:
+          ALERT_STATE: ${{ steps.meta.outputs.alert-state }}
+          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+        run: |
+          # Auto-merge when this PR closes an open security advisory AND
+          # the bump is patch- or minor-level. Major bumps still need a
+          # human eye.
+          if [ "$ALERT_STATE" = "AUTO_DISMISSED" ] || [ "$ALERT_STATE" = "DISMISSED" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Alert was dismissed; skipping."
+            exit 0
+          fi
+          case "$UPDATE_TYPE" in
+            version-update:semver-patch|version-update:semver-minor)
+              echo "skip=false" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              echo "Update type $UPDATE_TYPE requires manual review."
+              ;;
+          esac
+
+      - name: Enable auto-merge
+        if: steps.decide.outputs.skip == 'false' && steps.meta.outputs.alert-state != ''
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
