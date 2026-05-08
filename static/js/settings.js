@@ -154,6 +154,12 @@
   document.querySelector('main.settings-main').addEventListener('input', (e) => {
     // Skip the ZIP lookup field — it triggers via the Look up button.
     if (e.target.id === 'loc-zip' || e.target.id === 'loc-country') return;
+    // For free-text inputs, defer save until blur (change event) so we
+    // don't POST after every keystroke. Sliders/checkboxes/selects/numbers
+    // still autosave live.
+    const tag = e.target.tagName;
+    const type = (e.target.type || '').toLowerCase();
+    if (tag === 'INPUT' && (type === 'text' || type === '' || type === 'search')) return;
     autosave();
   });
   document.querySelector('main.settings-main').addEventListener('change', (e) => {
