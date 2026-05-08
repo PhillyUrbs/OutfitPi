@@ -21,6 +21,7 @@ from outfitpi.config_manager import (
     Child,
     Config,
     ConfigError,
+    Display,
     Server,
     Thresholds,
     Units,
@@ -377,6 +378,10 @@ def _build_config_from_payload(data: dict[str, Any]) -> Config:
 
     wr = data.get("web_remote") or {}
     cfg.web_remote = WebRemote(enabled=bool(wr.get("enabled", False)))
+
+    disp = data.get("display") or {}
+    theme = str(disp.get("theme", "auto")).strip().lower()
+    cfg.display = Display(theme=theme if theme in {"auto", "light", "dark"} else "auto")
 
     srv = data.get("server") or {}
     cfg.server = Server(port=int(srv.get("port", 5000)))

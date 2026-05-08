@@ -7,6 +7,7 @@
   <title>OutfitPi</title>
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="{{ url_for('static', filename='js/theme.js') }}" defer></script>
 </head>
 <body class="loading" data-app-version="{{ app_version }}">
   <header class="topbar">
@@ -30,6 +31,10 @@
     <button type="button" data-mode="auto" class="active">Auto</button>
     <button type="button" data-mode="day">Day</button>
     <button type="button" data-mode="night">Night</button>
+    <span class="dev-toggle-sep" aria-hidden="true">|</span>
+    <button type="button" data-kids="all" class="active">All</button>
+    <button type="button" data-kids="1">1 Kid</button>
+    <button type="button" data-kids="2">2 Kids</button>
   </div>
 
   <footer class="bottombar">

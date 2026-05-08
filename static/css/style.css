@@ -37,6 +37,23 @@ body:not(.settings-page):not(.setup) {
   overflow: hidden;
 }
 
+/* Settings & setup: scrollable with touch-drag. */
+body.settings-page,
+body.setup {
+  min-height: 100vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
+}
+body.settings-page .topbar,
+body.setup .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
 .topbar {
   display: flex;
   align-items: center;
@@ -377,4 +394,8 @@ legend { font-weight: 700; padding: 0 8px; }
   background: var(--orange);
   color: #fff;
   border-color: var(--orange);
+}
+.dev-toggle-sep {
+  color: rgba(255,255,255,0.35);
+  padding: 0 2px;
 }

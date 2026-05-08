@@ -50,5 +50,9 @@ web_remote:
   # Outbound API calls (weather, updates) always work.
   enabled: false
 
+display:
+  # "auto" (light by day, dark at night), "light", or "dark"
+  theme: auto
+
 server:
   port: 5000

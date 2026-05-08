@@ -15,6 +15,7 @@ import yaml
 VALID_GENDERS = {"boy", "girl"}
 VALID_UNITS = {"fahrenheit", "celsius"}
 VALID_TELEMETRY = {"none", "errors", "full"}
+VALID_THEMES = {"auto", "light", "dark"}
 VALID_CHANNELS = {"stable", "beta", "dev"}
 # Map legacy channel names to current ones for backward compatibility.
 _CHANNEL_ALIASES = {"releases": "stable", "main": "dev"}
@@ -74,6 +75,11 @@ class WebRemote:
 
 
 @dataclass
+class Display:
+    theme: str = "auto"  # "auto" | "light" | "dark"
+
+
+@dataclass
 class Server:
     port: int = 5000
 
@@ -89,6 +95,7 @@ class Config:
     updates: Updates = field(default_factory=Updates)
     telemetry: Telemetry = field(default_factory=Telemetry)
     web_remote: WebRemote = field(default_factory=WebRemote)
+    display: Display = field(default_factory=Display)
     server: Server = field(default_factory=Server)
 
     def to_dict(self) -> dict[str, Any]:
@@ -158,6 +165,10 @@ def _from_dict(data: dict[str, Any]) -> Config:
     wr = data.get("web_remote") or {}
     cfg.web_remote = WebRemote(enabled=bool(wr.get("enabled", False)))
 
+    disp = data.get("display") or {}
+    theme = str(disp.get("theme", "auto")).strip().lower()
+    cfg.display = Display(theme=theme if theme in VALID_THEMES else "auto")
+
     srv = data.get("server") or {}
     cfg.server = Server(port=int(srv.get("port", 5000)))
 
@@ -199,6 +210,8 @@ def validate_config(cfg: Config) -> None:
         raise ConfigError(f"Invalid telemetry level: {cfg.telemetry.level}")
     if cfg.updates.channel not in VALID_CHANNELS:
         raise ConfigError(f"Invalid update channel: {cfg.updates.channel}")
+    if cfg.display.theme not in VALID_THEMES:
+        raise ConfigError(f"Invalid theme: {cfg.display.theme}")
     if cfg.refresh_interval_minutes < 1:
         raise ConfigError("refresh_interval_minutes must be >= 1")
 

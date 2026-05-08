@@ -53,6 +53,7 @@
     $('auto-check').checked = cfg.updates.auto_check;
     $('auto-install').checked = cfg.updates.auto_install;
     $('channel').value = cfg.updates.channel;
+    $('theme').value = (cfg.display && cfg.display.theme) || 'auto';
   }
 
   async function load() {
@@ -78,6 +79,7 @@
     out.updates.auto_check = $('auto-check').checked;
     out.updates.auto_install = $('auto-install').checked;
     out.updates.channel = $('channel').value;
+    out.display = { theme: $('theme').value };
     return out;
   }
 
@@ -96,12 +98,18 @@
   });
   $('children-list').addEventListener('click', (e) => {
     const i = e.target.dataset.rm;
-    if (i !== undefined) { cfg.children.splice(parseInt(i, 10), 1); renderChildren(); }
+    if (i !== undefined) { cfg.children.splice(parseInt(i, 10), 1); renderChildren(); autosave(); }
   });
 
-  $('save').addEventListener('click', async () => {
+  let saveTimer = null;
+  let saveInFlight = false;
+  let saveQueued = false;
+
+  async function doSave() {
+    if (saveInFlight) { saveQueued = true; return; }
+    saveInFlight = true;
     const ok = $('settings-ok'), err = $('settings-error');
-    ok.hidden = err.hidden = true;
+    err.hidden = true;
     const payload = collect();
     const wasEnabled = cfg.web_remote.enabled;
     const willChangeBind = wasEnabled !== payload.web_remote.enabled;
@@ -113,7 +121,6 @@
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'Save failed');
-      // If web_remote toggled, hit /api/remote-access to trigger restart.
       if (willChangeBind) {
         const r2 = await fetch('/api/remote-access', {
           method: 'POST',
@@ -124,13 +131,34 @@
         if (j2.warning) alert(j2.warning);
         if (j2.restarting) { $('restart-overlay').hidden = false; setTimeout(() => location.href = '/', 3000); return; }
       }
-      ok.hidden = false;
       cfg = payload;
-      toast('✓ Settings saved');
+      // Sync theme immediately if the user just changed it.
+      if (window.OutfitPiTheme) window.OutfitPiTheme.syncFromConfig(cfg);
+      ok.hidden = false;
+      toast('✓ Saved');
     } catch (e) {
       err.textContent = e.message; err.hidden = false;
       toast('Save failed: ' + e.message, 'err');
+    } finally {
+      saveInFlight = false;
+      if (saveQueued) { saveQueued = false; doSave(); }
     }
+  }
+
+  function autosave() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(doSave, 600);
+  }
+
+  // Wire autosave on every form control inside the settings page.
+  document.querySelector('main.settings-main').addEventListener('input', (e) => {
+    // Skip the ZIP lookup field — it triggers via the Look up button.
+    if (e.target.id === 'loc-zip' || e.target.id === 'loc-country') return;
+    autosave();
+  });
+  document.querySelector('main.settings-main').addEventListener('change', (e) => {
+    if (e.target.id === 'loc-zip' || e.target.id === 'loc-country') return;
+    autosave();
   });
 
   $('reset').addEventListener('click', async () => {
