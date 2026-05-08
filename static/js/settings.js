@@ -248,9 +248,10 @@
 
   $('lookup-zip').addEventListener('click', () => lookupZip());
 
-  // Auto-lookup when the ZIP field has been "left" — i.e. focus has
-  // moved off the input AND off the on-screen keyboard onto some other
-  // page element. Track active ZIP focus, then watch document focusin.
+  // Auto-lookup ZIP when the user taps anywhere outside the field and
+  // the on-screen keyboard. focusin alone misses taps on non-focusable
+  // areas (labels, headings, blank space), so we listen for pointerdown
+  // on the document.
   let zipDirty = false;
   let zipLastValue = '';
   $('loc-zip').addEventListener('focus', () => {
@@ -258,17 +259,16 @@
     zipDirty = true;
   });
   $('loc-zip').addEventListener('input', () => { zipDirty = true; });
-  document.addEventListener('focusin', (e) => {
+  document.addEventListener('pointerdown', (e) => {
     if (!zipDirty) return;
     const t = e.target;
     if (t === $('loc-zip')) return;
     if (t && t.closest && t.closest('.keyboard-container')) return;
-    // Focus moved to a real other element — finalize ZIP entry.
     zipDirty = false;
     if ($('loc-zip').value.trim() && $('loc-zip').value !== zipLastValue) {
       lookupZip({ silent: true });
     }
-  });
+  }, true);
   $('loc-country').addEventListener('change', () => {
     if ($('loc-zip').value.trim()) lookupZip({ silent: true });
   });
