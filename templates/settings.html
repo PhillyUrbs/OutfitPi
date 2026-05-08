@@ -84,6 +84,16 @@
       <p id="update-status" class="hint">—</p>
       <button type="button" class="secondary" id="check-update">Check now</button>
       <button type="button" class="primary" id="install-update" hidden>Install update</button>
+      <div id="dev-install" class="dev-install" hidden>
+        <label>Force install version</label>
+        <div id="dev-ref-list" class="ref-list" role="listbox" aria-label="Select a build to install" data-drag-scroll>
+          <div class="ref-list-empty">Loading…</div>
+        </div>
+        <label>Or enter a ref (tag, branch or SHA)
+          <input type="text" id="dev-ref-input" placeholder="dev | v0.4.0 | a1b2c3d" autocomplete="off">
+        </label>
+        <button type="button" class="secondary" id="force-update">Force install</button>
+      </div>
       <label class="big-toggle"><input type="checkbox" id="auto-check" checked> Auto-check daily</label>
       <label class="big-toggle"><input type="checkbox" id="auto-install"> Auto-install</label>
       <label>Channel
