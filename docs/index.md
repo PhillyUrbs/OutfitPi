@@ -2,7 +2,7 @@
 
 Kid-friendly weather-based outfit recommender for the Raspberry Pi touchscreen.
 
-![Dashboard](img/dashboard.png){ loading=lazy }
+{{ img("dashboard.png", "Dashboard") }}
 
 ## What it does
 

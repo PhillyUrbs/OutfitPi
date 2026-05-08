@@ -35,3 +35,4 @@ Thumbs.db
 # Docs site build output
 /_site/
 docs/img/*.png
+!docs/img/_placeholder.png
