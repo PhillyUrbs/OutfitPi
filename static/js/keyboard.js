@@ -56,6 +56,13 @@
         '- _ . , @ / # & ( )',
         '{abc} {space} {enter}'
       ],
+      numeric: [
+        '1 2 3',
+        '4 5 6',
+        '7 8 9',
+        '- 0 . {bksp}',
+        '{enter}'
+      ],
     },
     display: {
       '{bksp}': '⌫', '{enter}': '↵', '{space}': ' ',
@@ -63,12 +70,27 @@
     }
   });
 
+  function isNumericInput(el) {
+    if (!el) return false;
+    const type = (el.type || '').toLowerCase();
+    if (type === 'number') return true;
+    const inputmode = (el.getAttribute('inputmode') || '').toLowerCase();
+    return inputmode === 'numeric' || inputmode === 'decimal' || inputmode === 'tel';
+  }
+
   function show(el) {
     activeInput = el;
     kb.setInput(el.value || '');
     container.hidden = false;
     document.body.classList.add('kb-open');
-    // Scroll the focused field into view above the keyboard.
+    // Numeric inputs get a digits-only layout with no shift/abc.
+    if (isNumericInput(el)) {
+      layoutName = 'numeric';
+      kb.setOptions({ layoutName });
+    } else if (layoutName === 'numeric') {
+      layoutName = 'default';
+      kb.setOptions({ layoutName });
+    }
     setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50);
   }
   function hide() {
