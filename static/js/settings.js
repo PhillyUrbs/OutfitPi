@@ -80,6 +80,7 @@
     $('auto-check').checked = cfg.updates.auto_check;
     $('auto-install').checked = cfg.updates.auto_install;
     $('channel').value = cfg.updates.channel;
+    $('force-update').hidden = cfg.updates.channel !== 'dev';
     $('theme').value = (cfg.display && cfg.display.theme) || 'auto';
   }
 
@@ -192,6 +193,7 @@
     const tel = (ch === 'dev' || ch === 'beta') ? 'full' : 'errors';
     const radio = document.querySelector(`input[name="telemetry"][value="${tel}"]`);
     if (radio) radio.checked = true;
+    $('force-update').hidden = ch !== 'dev';
   }
   document.getElementById('channel').addEventListener('change', () => {
     applyChannelDefaults();
@@ -237,8 +239,16 @@
 
   $('install-update').addEventListener('click', async () => {
     if (!confirm('Install the latest update? OutfitPi will restart.')) return;
+    runInstall('Installing update…');
+  });
+
+  $('force-update').addEventListener('click', async () => {
+    if (!confirm('Force reinstall the current dev build? OutfitPi will restart.')) return;
+    runInstall('Reinstalling dev build…');
+  });
+
+  async function runInstall(message) {
     $('update-status').textContent = 'Installing…';
-    // Snapshot current version so we can detect when the new build is up.
     let prevVersion = null;
     try {
       const h = await fetch('/api/health', { cache: 'no-store' });
@@ -251,13 +261,15 @@
     const j = await r.json();
     if (j.ok) {
       await waitForRestartAndReload({
-        message: 'Installing update…<br><small>This usually takes 10–30 seconds.</small>',
-        previousVersion: prevVersion,
+        message: `${message}<br><small>This usually takes 10–30 seconds.</small>`,
+        // Force-reinstall keeps the same version, so don't gate on version
+        // change — just wait for the server to come back.
+        previousVersion: null,
       });
     } else {
       $('update-status').textContent = 'Update failed: ' + (j.message || 'unknown');
     }
-  });
+  }
 
   $('redetect').addEventListener('click', async () => {
     $('loc-display').textContent = 'Re-detecting on next save…';
