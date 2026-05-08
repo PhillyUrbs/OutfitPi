@@ -16,6 +16,47 @@
     toastTimer = setTimeout(() => { t.hidden = true; }, 3000);
   }
 
+  // Show the restart overlay and reload only once the server has actually
+  // gone down and come back up. Polls /api/health up to ~120s.
+  // Decision rules:
+  //   - if a previousFingerprint (sha or version) is provided AND the
+  //     reported fingerprint differs, the new build is up: redirect.
+  //   - otherwise wait until at least one failed health check is observed
+  //     (server has gone down), then redirect on the next 200.
+  async function waitForRestartAndReload(opts = {}) {
+    const overlay = $('restart-overlay');
+    const msgEl = overlay.querySelector('.restart-msg');
+    if (msgEl && opts.message) msgEl.innerHTML = opts.message;
+    overlay.hidden = false;
+    const startFp = opts.previousFingerprint || null;
+    const deadline = Date.now() + 120000;
+    let sawDown = false;
+    await new Promise(r => setTimeout(r, 2000));
+    while (Date.now() < deadline) {
+      try {
+        const r = await fetch('/api/health', { cache: 'no-store' });
+        if (r.ok) {
+          const j = await r.json().catch(() => ({}));
+          const fp = `${j.version || ''}@${j.sha || ''}`;
+          if (startFp && fp !== startFp) {
+            location.href = opts.redirect || '/';
+            return;
+          }
+          if (sawDown) {
+            location.href = opts.redirect || '/';
+            return;
+          }
+        } else {
+          sawDown = true;
+        }
+      } catch {
+        sawDown = true;
+      }
+      await new Promise(r => setTimeout(r, 1000));
+    }
+    location.href = opts.redirect || '/';
+  }
+
   function renderChildren() {
     const list = $('children-list');
     list.innerHTML = '';
@@ -53,6 +94,7 @@
     $('auto-check').checked = cfg.updates.auto_check;
     $('auto-install').checked = cfg.updates.auto_install;
     $('channel').value = cfg.updates.channel;
+    toggleDevInstall(cfg.updates.channel === 'dev');
     $('theme').value = (cfg.display && cfg.display.theme) || 'auto';
   }
 
@@ -129,7 +171,12 @@
         });
         const j2 = await r2.json();
         if (j2.warning) alert(j2.warning);
-        if (j2.restarting) { $('restart-overlay').hidden = false; setTimeout(() => location.href = '/', 3000); return; }
+        if (j2.restarting) {
+          await waitForRestartAndReload({
+            message: 'Applying network change…<br><small>Reconnecting…</small>',
+          });
+          return;
+        }
       }
       cfg = payload;
       // Sync theme immediately if the user just changed it.
@@ -160,6 +207,7 @@
     const tel = (ch === 'dev' || ch === 'beta') ? 'full' : 'errors';
     const radio = document.querySelector(`input[name="telemetry"][value="${tel}"]`);
     if (radio) radio.checked = true;
+    toggleDevInstall(ch === 'dev');
   }
   document.getElementById('channel').addEventListener('change', () => {
     applyChannelDefaults();
@@ -205,19 +253,93 @@
 
   $('install-update').addEventListener('click', async () => {
     if (!confirm('Install the latest update? OutfitPi will restart.')) return;
+    runInstall('Installing update…', null);
+  });
+
+  $('force-update').addEventListener('click', async () => {
+    const ref = ($('dev-ref-input').value.trim() || selectedRef || '').trim();
+    const label = ref || 'current dev HEAD';
+    if (!confirm(`Force install ${label}? OutfitPi will restart.`)) return;
+    runInstall(`Installing ${label}…`, ref || null);
+  });
+
+  async function runInstall(message, ref) {
     $('update-status').textContent = 'Installing…';
+    let prevFp = null;
+    try {
+      const h = await fetch('/api/health', { cache: 'no-store' });
+      if (h.ok) {
+        const j = await h.json();
+        prevFp = `${j.version || ''}@${j.sha || ''}`;
+      }
+    } catch {}
     const r = await fetch('/api/update/install', {
       method: 'POST',
-      headers: { 'X-CSRFToken': csrfToken },
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify(ref ? { ref } : {}),
     });
     const j = await r.json();
     if (j.ok) {
-      $('restart-overlay').hidden = false;
-      setTimeout(() => location.href = '/', 5000);
+      await waitForRestartAndReload({
+        message: `${message}<br><small>This usually takes 10–30 seconds.</small>`,
+        previousFingerprint: prevFp,
+      });
     } else {
       $('update-status').textContent = 'Update failed: ' + (j.message || 'unknown');
     }
-  });
+  }
+
+  let devRefsLoaded = false;
+  let selectedRef = '';
+  async function toggleDevInstall(show) {
+    $('dev-install').hidden = !show;
+    if (!show || devRefsLoaded) return;
+    devRefsLoaded = true;
+    try {
+      const r = await fetch('/api/update/refs');
+      if (!r.ok) return;
+      const data = await r.json();
+      const list = $('dev-ref-list');
+      list.innerHTML = '';
+      const addItem = (ref, primary, secondary) => {
+        const div = document.createElement('div');
+        div.className = 'ref-item';
+        div.dataset.ref = ref;
+        div.setAttribute('role', 'option');
+        div.innerHTML = `<span class="ref-primary">${primary}</span>` +
+          (secondary ? `<span class="ref-secondary">${secondary}</span>` : '');
+        list.appendChild(div);
+      };
+      const addHeader = (label) => {
+        const h = document.createElement('div');
+        h.className = 'ref-group';
+        h.textContent = label;
+        list.appendChild(h);
+      };
+      addItem('', 'dev HEAD (latest)', 'origin/dev');
+      if (data.tags && data.tags.length) {
+        addHeader('Tags');
+        data.tags.forEach(it => addItem(it.ref, it.ref, `${it.date}${it.subject ? ' — ' + it.subject : ''}`));
+      }
+      if (data.commits && data.commits.length) {
+        addHeader('Recent dev commits');
+        data.commits.forEach(it => addItem(it.ref, it.ref, `${it.date}${it.subject ? ' — ' + it.subject : ''}`));
+      }
+      // Default selection = dev HEAD.
+      const first = list.querySelector('.ref-item');
+      if (first) {
+        first.classList.add('selected');
+        selectedRef = first.dataset.ref;
+      }
+      list.addEventListener('click', (e) => {
+        const item = e.target.closest('.ref-item');
+        if (!item) return;
+        list.querySelectorAll('.ref-item.selected').forEach(n => n.classList.remove('selected'));
+        item.classList.add('selected');
+        selectedRef = item.dataset.ref || '';
+      });
+    } catch {}
+  }
 
   $('redetect').addEventListener('click', async () => {
     $('loc-display').textContent = 'Re-detecting on next save…';
