@@ -26,5 +26,13 @@ Kid-friendly weather-based outfit recommender displayed on a Raspberry Pi with t
 - Use `pytest` with fixtures for weather data mocking
 - Tests must pass on both Windows (dev) and Linux (Pi)
 
+### Telemetry (add as you go, don't bolt on later)
+- Use the helpers in `outfitpi.telemetry`: `breadcrumb()`, `capture_exception()`, `capture_message()`, `set_tags()`. They no-op when telemetry is disabled, so call sites stay clean.
+- **Every new `except` that swallows or logs an error**: also call `capture_exception(exc, **context_tags)` so it surfaces in Sentry instead of being lost. Skip only for expected errors (e.g. `LocationNotConfiguredError` on a fresh install).
+- **Every new state transition** the user takes (settings save, channel switch, force install, theme change, mode override, etc.): add a `breadcrumb("category", "what happened", **safe_data)`. Breadcrumbs are full-telemetry-only and ride along for free with the next event.
+- **Every new long-running or failable operation** (update install, weather fetch, geocode, restart): add `capture_message` on success and failure with the relevant tags so we can see frequency and outage patterns.
+- Tag with: `channel`, `route`, `target_ref`, `units`, `theme`, action-specific keys. Avoid PII — `before_send` already scrubs IPs/coords/child names but the tag itself shouldn't be sensitive.
+- Frontend: route user-visible failures (failed save, failed lookup, failed install, JS errors) through `reportClientError(action, message)` (in `static/js/settings.js`) so they POST to `/api/_client/error` and surface in Sentry.
+
 ### No paid services
 - Do not suggest paid APIs, extensions, or cloud services

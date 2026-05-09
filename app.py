@@ -51,7 +51,21 @@ from outfitpi.location import (
 )
 from outfitpi.network_utils import get_lan_ip
 from outfitpi.recommender import recommend_all
-from outfitpi.telemetry import init_sentry
+from outfitpi.telemetry import (
+    breadcrumb as _breadcrumb,
+)
+from outfitpi.telemetry import (
+    capture_exception as _capture_exc,
+)
+from outfitpi.telemetry import (
+    capture_message as _capture_msg,
+)
+from outfitpi.telemetry import (
+    init_sentry,
+)
+from outfitpi.telemetry import (
+    set_tags as _set_tags,
+)
 from outfitpi.updater import check_for_update, detect_repo, is_valid_ref, list_refs, perform_update
 from outfitpi.weather import fetch_current_weather
 
@@ -95,7 +109,20 @@ def create_app(config_path: Path | None = None) -> Flask:
     if config_exists(cfg_path):
         try:
             cfg = load_config(cfg_path)
-            init_sentry(cfg.telemetry.level, __version__, lambda: [c.name for c in load_config(cfg_path).children])
+            init_sentry(
+                cfg.telemetry.level,
+                __version__,
+                lambda: [c.name for c in load_config(cfg_path).children],
+                channel=cfg.updates.channel,
+                repo_path=str(BASE_DIR),
+            )
+            _set_tags({
+                "channel": cfg.updates.channel,
+                "theme": cfg.display.theme,
+                "units": cfg.units.temperature,
+                "remote_access": cfg.web_remote.enabled,
+                "child_count": len(cfg.children),
+            })
         except Exception as exc:  # noqa: BLE001
             logger.warning("Sentry init skipped: %s", exc)
 
@@ -157,9 +184,14 @@ def create_app(config_path: Path | None = None) -> Flask:
         except LocationNotConfiguredError:
             return jsonify({"error": "location_not_configured"}), 400
         except LocationError as exc:
+            _capture_exc(exc, route="/api/weather", phase="get_location")
             return jsonify({"error": "location_error", "detail": str(exc)}), 502
 
         weather = fetch_current_weather(loc.latitude, loc.longitude, cfg.units.temperature)
+        if weather is None:
+            _breadcrumb("weather", "fetch returned no data and no cache", level="warning")
+        elif weather.stale:
+            _breadcrumb("weather", "served stale cached weather", level="warning")
 
         # Dev-only override: ?mode=day|night|auto forces the recommender into a
         # given mode regardless of clock/sunset. Only honored on the dev channel.
@@ -172,6 +204,13 @@ def create_app(config_path: Path | None = None) -> Flask:
             weather, cfg.children, cfg.thresholds, cfg.units.temperature,
             force_evening=force_evening,
         )
+        # Track evening-mode transitions so we can correlate UI bugs.
+        evening = recs[0].tier_name == "evening" if recs else False
+        prev = getattr(api_weather, "_last_evening", None)
+        if prev is not None and prev != evening:
+            _breadcrumb("recommender", "evening mode flipped",
+                        from_=str(prev), to=str(evening))
+        api_weather._last_evening = evening
 
         return jsonify(
             {
@@ -213,6 +252,60 @@ def create_app(config_path: Path | None = None) -> Flask:
             pass
         return jsonify({"ok": True, "version": __version__, "sha": sha})
 
+    @app.get("/api/_test/raise")
+    def api_test_raise():
+        """Dev/beta-only: raise a tagged exception (or send a message) so
+        Sentry capture can be verified end-to-end. 404 on stable channel.
+        Usage:
+            curl http://localhost:5000/api/_test/raise           # exception
+            curl http://localhost:5000/api/_test/raise?kind=message
+        """
+        cfg = load_config(cfg_path) if config_exists(cfg_path) else Config()
+        if cfg.updates.channel not in {"dev", "beta"}:
+            abort(404)
+        kind = (request.args.get("kind") or "exception").lower()
+        if kind == "message":
+            try:
+                import sentry_sdk
+                sentry_sdk.capture_message(
+                    "OutfitPi telemetry test message", level="info"
+                )
+                return jsonify({"ok": True, "kind": "message"})
+            except ImportError:
+                return jsonify({"ok": False, "error": "sentry-sdk not installed"}), 500
+        # Default: raise a real exception so Flask + Sentry both see it.
+        raise RuntimeError("OutfitPi telemetry test exception (intentional)")
+
+    @app.post("/api/_client/error")
+    def api_client_error():
+        """Receive a client-side error report from the browser.
+
+        Posted by static/js/settings.js (and others) when a user-initiated
+        action fails (failed save, ZIP lookup error, update install error,
+        unexpected JS exception). Captures the error to Sentry along with
+        the in-flight settings snapshot so we can correlate UI failures.
+        """
+        body = request.get_json(silent=True) or {}
+        message = str(body.get("message") or "client error")[:400]
+        page = str(body.get("page") or "")
+        action = str(body.get("action") or "")
+        # Capture under a synthetic exception type so it groups in Sentry.
+        try:
+            raise RuntimeError(f"client: {message}")
+        except RuntimeError as exc:
+            _capture_exc(
+                exc,
+                source="client",
+                page=page,
+                action=action,
+                ua=request.headers.get("User-Agent", "")[:120],
+            )
+        # Also drop a breadcrumb so subsequent server-side events have
+        # context if the user keeps poking.
+        _breadcrumb("client", message, level="warning",
+                    page=page, action=action)
+        return jsonify({"ok": True})
+
     @app.get("/api/settings")
     def api_settings_get():
         cfg = load_config(cfg_path)
@@ -226,7 +319,28 @@ def create_app(config_path: Path | None = None) -> Flask:
             validate_config(cfg)
             save_config(cfg_path, cfg)
         except (ConfigError, ValueError, KeyError, TypeError) as exc:
+            _capture_exc(
+                exc,
+                route="/api/settings",
+                channel=(data.get("updates") or {}).get("channel"),
+                theme=(data.get("display") or {}).get("theme"),
+                units=(data.get("units") or {}).get("temperature"),
+                child_count=len(data.get("children") or []),
+                remote_access=(data.get("web_remote") or {}).get("enabled"),
+                refresh_minutes=data.get("refresh_interval_minutes"),
+            )
             return jsonify({"error": str(exc)}), 400
+        # Re-apply tags now that config changed.
+        _set_tags({
+            "channel": cfg.updates.channel,
+            "theme": cfg.display.theme,
+            "units": cfg.units.temperature,
+            "remote_access": cfg.web_remote.enabled,
+            "child_count": len(cfg.children),
+        })
+        _breadcrumb("settings", "settings saved",
+                    channel=cfg.updates.channel, theme=cfg.display.theme,
+                    units=cfg.units.temperature)
         clear_location_cache()
         return jsonify({"ok": True})
 
@@ -265,6 +379,7 @@ def create_app(config_path: Path | None = None) -> Flask:
             warning = "Disabling remote access will disconnect this session. Reconnect from the Pi."
 
         if was_enabled != enabled:
+            _breadcrumb("settings", "remote access toggled", enabled=enabled)
             schedule_restart()
             return jsonify({"ok": True, "restarting": True, "delay": 2, "warning": warning})
         return jsonify({"ok": True, "warning": warning})
@@ -297,8 +412,14 @@ def create_app(config_path: Path | None = None) -> Flask:
             BASE_DIR, venv_pip=venv_pip, channel=cfg.updates.channel, target_ref=target_ref,
         )
         if ok:
+            _capture_msg("update installed", level="info",
+                         channel=cfg.updates.channel,
+                         target_ref=target_ref or "channel-head")
             schedule_restart()
             return jsonify({"ok": True, "message": msg, "restarting": True, "delay": 2})
+        _capture_msg(f"update failed: {msg}", level="error",
+                     channel=cfg.updates.channel,
+                     target_ref=target_ref or "channel-head")
         return jsonify({"ok": False, "message": msg}), 500
 
     @app.get("/api/update/refs")
@@ -318,6 +439,7 @@ def create_app(config_path: Path | None = None) -> Flask:
         try:
             loc = geocode_zip(country, zip_code)
         except LocationError as exc:
+            _capture_exc(exc, route="/api/geocode/zip", country=country)
             return jsonify({"error": str(exc)}), 400
         return jsonify(
             {
@@ -443,8 +565,15 @@ def _startup_update_thread(cfg: Config) -> None:
         time.sleep(60)
         try:
             info = check_for_update(__version__, detect_repo(BASE_DIR), channel=cfg.updates.channel, repo_path=BASE_DIR)
+            _breadcrumb("updater", "auto-check completed",
+                        channel=cfg.updates.channel,
+                        available=info.available,
+                        latest=info.latest_version)
             if info.available and cfg.updates.auto_install:
                 logger.info("Auto-installing update %s", info.latest_version)
+                _capture_msg("auto-update starting", level="info",
+                             channel=cfg.updates.channel,
+                             latest=info.latest_version)
                 venv_pip = BASE_DIR / "venv" / "bin" / "pip"
                 venv_pip = venv_pip if venv_pip.exists() else None
                 ok, msg = perform_update(BASE_DIR, venv_pip=venv_pip, channel=cfg.updates.channel)
@@ -452,8 +581,12 @@ def _startup_update_thread(cfg: Config) -> None:
                     schedule_restart()
                 else:
                     logger.warning("Auto-update failed: %s", msg)
+                    _capture_msg(f"auto-update failed: {msg}", level="error",
+                                 channel=cfg.updates.channel,
+                                 latest=info.latest_version)
         except Exception as exc:  # noqa: BLE001
             logger.warning("Update worker error: %s", exc)
+            _capture_exc(exc, route="auto-update-worker", channel=cfg.updates.channel)
 
     threading.Thread(target=_worker, daemon=True).start()
 

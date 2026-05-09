@@ -159,7 +159,15 @@ def fetch_current_weather(
         weather = _parse(resp.json(), units)
         _last_weather = weather
         return weather
-    except (httpx.HTTPError, ValueError, KeyError):
+    except (httpx.HTTPError, ValueError, KeyError) as exc:
+        # Surface the failure to telemetry so we can see Open-Meteo
+        # outages without spamming the logs.
+        try:
+            from outfitpi.telemetry import capture_exception
+            capture_exception(exc, source="open-meteo",
+                              had_cache=_last_weather is not None)
+        except Exception:  # noqa: BLE001
+            pass
         if _last_weather is not None:
             stale = CurrentWeather(**{**_last_weather.__dict__, "stale": True})
             return stale
