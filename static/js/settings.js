@@ -16,6 +16,25 @@
     toastTimer = setTimeout(() => { t.hidden = true; }, 3000);
   }
 
+  // Best-effort client-error report. The server forwards it to telemetry
+  // along with the in-flight settings snapshot for context.
+  function reportClientError(action, message) {
+    try {
+      fetch('/api/_client/error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ page: 'settings', action, message: String(message).slice(0, 400) }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch {}
+  }
+  window.addEventListener('error', (e) => {
+    reportClientError('window.onerror', `${e.message} @ ${e.filename}:${e.lineno}`);
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    reportClientError('unhandledrejection', String(e.reason && e.reason.message || e.reason));
+  });
+
   // Show the restart overlay and reload only once the server has actually
   // gone down and come back up. Polls /api/health up to ~120s.
   // Decision rules:
@@ -186,6 +205,7 @@
     } catch (e) {
       err.textContent = e.message; err.hidden = false;
       toast('Save failed: ' + e.message, 'err');
+      reportClientError('settings-save', e.message);
     } finally {
       saveInFlight = false;
       if (saveQueued) { saveQueued = false; doSave(); }
@@ -286,6 +306,7 @@
       });
     } else {
       $('update-status').textContent = 'Update failed: ' + (j.message || 'unknown');
+      reportClientError('update-install', j.message || 'unknown');
     }
   }
 
@@ -365,6 +386,7 @@
       autosave();
     } catch (e) {
       out.textContent = e.message;
+      reportClientError('zip-lookup', e.message);
     }
   }
 

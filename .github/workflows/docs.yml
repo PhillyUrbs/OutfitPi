@@ -12,8 +12,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: docs-${{ github.ref }}
-  cancel-in-progress: false
+  group: docs-build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -44,6 +44,13 @@ jobs:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/beta' || github.ref == 'refs/heads/main')
     needs: build
     runs-on: ubuntu-latest
+    # Single shared concurrency group across all branches so simultaneous
+    # pushes to beta + main don't race each other on the gh-pages branch.
+    # cancel-in-progress=false queues them; Pages itself only ever serves
+    # one HEAD anyway.
+    concurrency:
+      group: docs-deploy-gh-pages
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         with:
