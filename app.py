@@ -109,7 +109,13 @@ def create_app(config_path: Path | None = None) -> Flask:
     if config_exists(cfg_path):
         try:
             cfg = load_config(cfg_path)
-            init_sentry(cfg.telemetry.level, __version__, lambda: [c.name for c in load_config(cfg_path).children])
+            init_sentry(
+                cfg.telemetry.level,
+                __version__,
+                lambda: [c.name for c in load_config(cfg_path).children],
+                channel=cfg.updates.channel,
+                repo_path=str(BASE_DIR),
+            )
             _set_tags({
                 "channel": cfg.updates.channel,
                 "theme": cfg.display.theme,

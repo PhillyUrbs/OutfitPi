@@ -23,6 +23,35 @@ def _detect_environment() -> str:
     return "production" if os.environ.get("INVOCATION_ID") else "development"
 
 
+def _release_string(version: str, channel: str | None, repo_path: str | None) -> str:
+    """Build the Sentry release identifier.
+
+    - stable: outfitpi@X.Y.Z (matches the published tag)
+    - dev/beta: outfitpi@X.Y.Z+sha.<short>  so each commit is its own
+      release in Sentry. This makes regression hunting precise on
+      channels where __version__ doesn't change per commit.
+    """
+    base = f"outfitpi@{version}"
+    if channel not in {"dev", "beta"} or not repo_path:
+        return base
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["git", "rev-parse", "--short=7", "HEAD"],
+            cwd=repo_path,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+        sha = result.stdout.strip()
+        if sha:
+            return f"{base}+sha.{sha}"
+    except Exception:  # noqa: BLE001
+        pass
+    return base
+
+
 def _scrub_string(s: str, child_names: list[str]) -> str:
     s = _IP_RE.sub("[ip]", s)
     s = _LATLON_RE.sub("[coord]", s)
@@ -72,11 +101,19 @@ def _make_before_send(child_names_provider):
     return before_send
 
 
-def init_sentry(level: str, version: str, child_names_provider) -> None:
+def init_sentry(
+    level: str,
+    version: str,
+    child_names_provider,
+    *,
+    channel: str | None = None,
+    repo_path: str | None = None,
+) -> None:
     """Initialize Sentry if level is 'errors' or 'full'.
 
     `child_names_provider` is a callable returning the current list of child names
-    (so updates take effect without restart).
+    (so updates take effect without restart). `channel` and `repo_path` let us
+    augment the release id with a git SHA for dev/beta builds.
     """
     global _active_level
     _active_level = "none"
@@ -94,11 +131,12 @@ def init_sentry(level: str, version: str, child_names_provider) -> None:
         return
 
     traces_rate = 0.0 if level == "errors" else 0.1
+    release = _release_string(version, channel, repo_path)
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         integrations=[FlaskIntegration()],
         environment=_detect_environment(),
-        release=f"outfitpi@{version}",
+        release=release,
         traces_sample_rate=traces_rate,
         send_default_pii=False,
         # Release-health: count user sessions per release for crash-free %.
@@ -106,7 +144,8 @@ def init_sentry(level: str, version: str, child_names_provider) -> None:
         before_send=_make_before_send(child_names_provider),
     )
     _active_level = level
-    logger.info("Sentry initialized (level=%s, env=%s)", level, _detect_environment())
+    logger.info("Sentry initialized (level=%s, env=%s, release=%s)",
+                level, _detect_environment(), release)
 
 
 def set_tags(tags: dict[str, Any]) -> None:
