@@ -19,8 +19,23 @@ _IP_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 _LATLON_RE = re.compile(r"-?\d{1,3}\.\d{2,}")
 
 
-def _detect_environment() -> str:
-    return "production" if os.environ.get("INVOCATION_ID") else "development"
+def _detect_environment(channel: str | None = None) -> str:
+    """Map release channel to a Sentry environment.
+
+    - dev    -> "dev"
+    - beta   -> "beta"
+    - stable -> "production"
+    - unset / running outside systemd -> "development"
+    """
+    if channel == "dev":
+        return "dev"
+    if channel == "beta":
+        return "beta"
+    if channel == "stable" and os.environ.get("INVOCATION_ID"):
+        return "production"
+    if os.environ.get("INVOCATION_ID"):
+        return "production"
+    return "development"
 
 
 def _release_string(version: str, channel: str | None, repo_path: str | None) -> str:
@@ -132,10 +147,11 @@ def init_sentry(
 
     traces_rate = 0.0 if level == "errors" else 0.1
     release = _release_string(version, channel, repo_path)
+    env = _detect_environment(channel)
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         integrations=[FlaskIntegration()],
-        environment=_detect_environment(),
+        environment=env,
         release=release,
         traces_sample_rate=traces_rate,
         send_default_pii=False,
@@ -145,7 +161,7 @@ def init_sentry(
     )
     _active_level = level
     logger.info("Sentry initialized (level=%s, env=%s, release=%s)",
-                level, _detect_environment(), release)
+                level, env, release)
 
 
 def set_tags(tags: dict[str, Any]) -> None:
