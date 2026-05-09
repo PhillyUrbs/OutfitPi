@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+import urllib.parse
 from dataclasses import dataclass
 
 import httpx
@@ -89,6 +91,12 @@ def clear_cache() -> None:
 
 ZIPPOPOTAM_URL = "https://api.zippopotam.us/{country}/{zip}"
 
+# Strict allowlists so user-supplied path segments can't reach beyond
+# the intended host. Country: ISO 3166-1 alpha-2. Zip: digits, letters,
+# space, dash — covers US/CA/UK/etc. without allowing slashes or dots.
+_COUNTRY_RE = re.compile(r"^[a-z]{2}$")
+_ZIP_RE = re.compile(r"^[A-Za-z0-9 \-]{3,12}$")
+
 
 def geocode_zip(country: str, zip_code: str) -> Location:
     """Resolve a postal code to lat/lon via Zippopotam.us (free, no key).
@@ -99,7 +107,15 @@ def geocode_zip(country: str, zip_code: str) -> Location:
     zip_code = (zip_code or "").strip()
     if not zip_code:
         raise LocationServiceError("Postal code is required.")
-    url = ZIPPOPOTAM_URL.format(country=country, zip=zip_code)
+    if not _COUNTRY_RE.match(country):
+        raise LocationServiceError(f"Invalid country code: {country!r}.")
+    if not _ZIP_RE.match(zip_code):
+        raise LocationServiceError(f"Invalid postal code format: {zip_code!r}.")
+    # Percent-encode just in case (after format check above).
+    url = ZIPPOPOTAM_URL.format(
+        country=urllib.parse.quote(country, safe=""),
+        zip=urllib.parse.quote(zip_code, safe=""),
+    )
     try:
         resp = httpx.get(url, timeout=10.0)
         if resp.status_code == 404:
