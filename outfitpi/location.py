@@ -60,7 +60,7 @@ def _fetch_ip_location() -> Location:
 
 def get_location(config: Config, *, force_refresh: bool = False) -> Location:
     """Resolve location from config or IP geolocation. Caches for process lifetime."""
-    global _cache
+    global _cache  # noqa: PLW0603 — module-level memoization, intentional
 
     loc_cfg = config.location
     if loc_cfg.latitude is not None and loc_cfg.longitude is not None:

@@ -249,6 +249,7 @@ def create_app(config_path: Path | None = None) -> Flask:
             )
             sha = result.stdout.strip()
         except (FileNotFoundError, subprocess.SubprocessError):
+            # No git or repo unavailable; ship without the SHA.
             pass
         return jsonify({"ok": True, "version": __version__, "sha": sha})
 
@@ -467,6 +468,7 @@ def create_app(config_path: Path | None = None) -> Flask:
         if ico.exists():
             return send_from_directory(ico.parent, ico.name)
         abort(404)
+        return None  # unreachable; satisfies static analysis
 
     return app
 
