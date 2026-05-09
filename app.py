@@ -213,6 +213,30 @@ def create_app(config_path: Path | None = None) -> Flask:
             pass
         return jsonify({"ok": True, "version": __version__, "sha": sha})
 
+    @app.get("/api/_test/raise")
+    def api_test_raise():
+        """Dev/beta-only: raise a tagged exception (or send a message) so
+        Sentry capture can be verified end-to-end. 404 on stable channel.
+        Usage:
+            curl http://localhost:5000/api/_test/raise           # exception
+            curl http://localhost:5000/api/_test/raise?kind=message
+        """
+        cfg = load_config(cfg_path) if config_exists(cfg_path) else Config()
+        if cfg.updates.channel not in {"dev", "beta"}:
+            abort(404)
+        kind = (request.args.get("kind") or "exception").lower()
+        if kind == "message":
+            try:
+                import sentry_sdk
+                sentry_sdk.capture_message(
+                    "OutfitPi telemetry test message", level="info"
+                )
+                return jsonify({"ok": True, "kind": "message"})
+            except ImportError:
+                return jsonify({"ok": False, "error": "sentry-sdk not installed"}), 500
+        # Default: raise a real exception so Flask + Sentry both see it.
+        raise RuntimeError("OutfitPi telemetry test exception (intentional)")
+
     @app.get("/api/settings")
     def api_settings_get():
         cfg = load_config(cfg_path)
