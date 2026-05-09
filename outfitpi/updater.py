@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import re
 import subprocess
@@ -289,6 +290,14 @@ def perform_update(
             text=True,
             timeout=60,
         )
+        # Belt-and-suspenders: ensure scripts that the kiosk autostart and
+        # installer rely on are executable, even if a future commit drops
+        # the +x bit in the index.
+        for rel in ("scripts/kiosk.sh", "scripts/start.sh", "install.sh"):
+            p = repo_path / rel
+            if p.exists():
+                with contextlib.suppress(OSError):
+                    p.chmod(p.stat().st_mode | 0o111)
         pip_cmd = [str(venv_pip)] if venv_pip else ["pip"]
         subprocess.run(
             [*pip_cmd, "install", "-r", "requirements.txt"],
