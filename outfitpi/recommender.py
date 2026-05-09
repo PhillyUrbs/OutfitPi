@@ -82,6 +82,7 @@ def _is_evening(weather: CurrentWeather, now: datetime | None = None) -> bool:
             if now >= sunset_dt:
                 return True
         except (ValueError, TypeError):
+            # Bad sunset string from upstream; fall through to clock check.
             pass
     return False
 

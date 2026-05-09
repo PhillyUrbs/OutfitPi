@@ -30,33 +30,74 @@
 
   function renderChildren() {
     const list = $('#children-list');
-    list.innerHTML = '';
+    list.replaceChildren();
     state.children.forEach((c, i) => {
       const row = document.createElement('div');
       row.className = 'child-row';
-      row.innerHTML = `
-        <input type="text" placeholder="Name" value="${c.name || ''}" data-i="${i}" data-k="name">
-        <select data-i="${i}" data-k="gender">
-          <option value="boy" ${c.gender === 'boy' ? 'selected' : ''}>Boy</option>
-          <option value="girl" ${c.gender === 'girl' ? 'selected' : ''}>Girl</option>
-        </select>
-        <label>Comfort ${c.comfort_offset_f >= 0 ? '+' : ''}${c.comfort_offset_f}°F
-          <input type="range" min="-10" max="10" step="1" value="${c.comfort_offset_f}" data-i="${i}" data-k="comfort_offset_f">
-        </label>
-        <button type="button" class="danger" data-rm="${i}">×</button>`;
-      list.appendChild(row);
+
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.placeholder = 'Name';
+      nameInput.value = c.name || '';
+      nameInput.dataset.i = i;
+      nameInput.dataset.k = 'name';
+
+      const genderSel = document.createElement('select');
+      genderSel.dataset.i = i;
+      genderSel.dataset.k = 'gender';
+      [['boy', 'Boy'], ['girl', 'Girl']].forEach(([val, label]) => {
+        const o = document.createElement('option');
+        o.value = val;
+        o.textContent = label;
+        if (c.gender === val) o.selected = true;
+        genderSel.append(o);
+      });
+
+      const offset = Number(c.comfort_offset_f) || 0;
+      const comfortLabel = document.createElement('label');
+      comfortLabel.textContent = `Comfort ${offset >= 0 ? '+' : ''}${offset}°F`;
+      const comfortInput = document.createElement('input');
+      comfortInput.type = 'range';
+      comfortInput.min = '-10';
+      comfortInput.max = '10';
+      comfortInput.step = '1';
+      comfortInput.value = String(offset);
+      comfortInput.dataset.i = i;
+      comfortInput.dataset.k = 'comfort_offset_f';
+      comfortLabel.append(comfortInput);
+
+      const rm = document.createElement('button');
+      rm.type = 'button';
+      rm.className = 'danger';
+      rm.dataset.rm = i;
+      rm.textContent = '×';
+
+      row.append(nameInput, genderSel, comfortLabel, rm);
+      list.append(row);
     });
     $('#add-child').disabled = state.children.length >= 2;
   }
 
   function renderSummary() {
     const s = $('#summary');
-    s.innerHTML = `
-      <p><strong>Location:</strong> ${state.location.auto ? 'Auto-detect (IP)' : (state.location.latitude + ', ' + state.location.longitude)}</p>
-      <p><strong>Units:</strong> ${state.units.temperature}</p>
-      <p><strong>Children:</strong> ${state.children.map(c => `${c.name} (${c.gender}, ${c.comfort_offset_f >= 0 ? '+' : ''}${c.comfort_offset_f}°F)`).join('; ') || '—'}</p>
-      <p><strong>Remote access:</strong> ${state.web_remote.enabled ? 'On' : 'Off'}</p>
-      <p><strong>Telemetry:</strong> ${state.telemetry.level}</p>`;
+    s.replaceChildren();
+    const make = (label, value) => {
+      const p = document.createElement('p');
+      const strong = document.createElement('strong');
+      strong.textContent = label + ':';
+      p.append(strong, ' ', String(value));
+      return p;
+    };
+    s.append(make('Location',
+      state.location.auto ? 'Auto-detect (IP)' :
+        `${state.location.latitude}, ${state.location.longitude}`));
+    s.append(make('Units', state.units.temperature));
+    const childSummary = state.children.map(c =>
+      `${c.name} (${c.gender}, ${c.comfort_offset_f >= 0 ? '+' : ''}${c.comfort_offset_f}°F)`
+    ).join('; ') || '—';
+    s.append(make('Children', childSummary));
+    s.append(make('Remote access', state.web_remote.enabled ? 'On' : 'Off'));
+    s.append(make('Telemetry', state.telemetry.level));
   }
 
   function validate() {

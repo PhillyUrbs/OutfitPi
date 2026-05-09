@@ -78,21 +78,50 @@
 
   function renderChildren() {
     const list = $('children-list');
-    list.innerHTML = '';
+    list.replaceChildren();
     cfg.children.forEach((c, i) => {
       const row = document.createElement('div');
       row.className = 'child-row';
-      row.innerHTML = `
-        <input type="text" placeholder="Name" value="${c.name || ''}" data-i="${i}" data-k="name">
-        <select data-i="${i}" data-k="gender">
-          <option value="boy" ${c.gender === 'boy' ? 'selected' : ''}>Boy</option>
-          <option value="girl" ${c.gender === 'girl' ? 'selected' : ''}>Girl</option>
-        </select>
-        <label>Comfort ${c.comfort_offset_f >= 0 ? '+' : ''}${c.comfort_offset_f}°F
-          <input type="range" min="-10" max="10" step="1" value="${c.comfort_offset_f}" data-i="${i}" data-k="comfort_offset_f">
-        </label>
-        <button type="button" class="danger" data-rm="${i}">×</button>`;
-      list.appendChild(row);
+
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.placeholder = 'Name';
+      nameInput.value = c.name || '';
+      nameInput.dataset.i = i;
+      nameInput.dataset.k = 'name';
+
+      const genderSel = document.createElement('select');
+      genderSel.dataset.i = i;
+      genderSel.dataset.k = 'gender';
+      [['boy', 'Boy'], ['girl', 'Girl']].forEach(([val, label]) => {
+        const o = document.createElement('option');
+        o.value = val;
+        o.textContent = label;
+        if (c.gender === val) o.selected = true;
+        genderSel.append(o);
+      });
+
+      const offset = Number(c.comfort_offset_f) || 0;
+      const comfortLabel = document.createElement('label');
+      comfortLabel.textContent = `Comfort ${offset >= 0 ? '+' : ''}${offset}°F`;
+      const comfortInput = document.createElement('input');
+      comfortInput.type = 'range';
+      comfortInput.min = '-10';
+      comfortInput.max = '10';
+      comfortInput.step = '1';
+      comfortInput.value = String(offset);
+      comfortInput.dataset.i = i;
+      comfortInput.dataset.k = 'comfort_offset_f';
+      comfortLabel.append(comfortInput);
+
+      const rm = document.createElement('button');
+      rm.type = 'button';
+      rm.className = 'danger';
+      rm.dataset.rm = i;
+      rm.textContent = '×';
+
+      row.append(nameInput, genderSel, comfortLabel, rm);
+      list.append(row);
     });
     $('add-child').disabled = cfg.children.length >= 2;
   }
@@ -321,15 +350,23 @@
       if (!r.ok) return;
       const data = await r.json();
       const list = $('dev-ref-list');
-      list.innerHTML = '';
+      list.replaceChildren();
       const addItem = (ref, primary, secondary) => {
         const div = document.createElement('div');
         div.className = 'ref-item';
         div.dataset.ref = ref;
         div.setAttribute('role', 'option');
-        div.innerHTML = `<span class="ref-primary">${primary}</span>` +
-          (secondary ? `<span class="ref-secondary">${secondary}</span>` : '');
-        list.appendChild(div);
+        const p = document.createElement('span');
+        p.className = 'ref-primary';
+        p.textContent = primary;
+        div.append(p);
+        if (secondary) {
+          const s = document.createElement('span');
+          s.className = 'ref-secondary';
+          s.textContent = secondary;
+          div.append(s);
+        }
+        list.append(div);
       };
       const addHeader = (label) => {
         const h = document.createElement('div');

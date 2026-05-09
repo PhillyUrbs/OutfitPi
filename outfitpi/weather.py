@@ -138,7 +138,7 @@ def fetch_current_weather(
     latitude: float, longitude: float, units: str = "fahrenheit"
 ) -> CurrentWeather | None:
     """Fetch current weather. Returns cached stale data on error, or None if no cache."""
-    global _last_weather
+    global _last_weather  # noqa: PLW0603 — module-level cache, intentional
 
     if os.environ.get("OUTFITPI_DOCS_MODE"):
         return _docs_mode_weather(units)
