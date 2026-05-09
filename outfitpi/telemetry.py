@@ -11,6 +11,10 @@ logger = logging.getLogger(__name__)
 
 SENTRY_DSN = "https://decc72ee385e5c1c3dafc6a7786a32e9@o4511346280169472.ingest.us.sentry.io/4511346286723072"
 
+# Active level after init; gates the helper functions below.
+# "none" | "errors" | "full"
+_active_level: str = "none"
+
 _IP_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 _LATLON_RE = re.compile(r"-?\d{1,3}\.\d{2,}")
 
@@ -74,6 +78,8 @@ def init_sentry(level: str, version: str, child_names_provider) -> None:
     `child_names_provider` is a callable returning the current list of child names
     (so updates take effect without restart).
     """
+    global _active_level
+    _active_level = "none"
     if level not in {"errors", "full"}:
         return
     # Never run telemetry under pytest; the SDK installs an atexit hook that
@@ -95,6 +101,76 @@ def init_sentry(level: str, version: str, child_names_provider) -> None:
         release=f"outfitpi@{version}",
         traces_sample_rate=traces_rate,
         send_default_pii=False,
+        # Release-health: count user sessions per release for crash-free %.
+        auto_session_tracking=True,
         before_send=_make_before_send(child_names_provider),
     )
+    _active_level = level
     logger.info("Sentry initialized (level=%s, env=%s)", level, _detect_environment())
+
+
+def set_tags(tags: dict[str, Any]) -> None:
+    """Attach long-lived tags (channel, theme, kiosk, etc.) to all events."""
+    if _active_level == "none":
+        return
+    try:
+        import sentry_sdk
+        for k, v in tags.items():
+            if v is None:
+                continue
+            sentry_sdk.set_tag(k, str(v))
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def breadcrumb(category: str, message: str, level: str = "info", **data: Any) -> None:
+    """Attach a breadcrumb. No-op unless telemetry == full.
+
+    Breadcrumbs add ~zero data when no event fires; on an event they give
+    you the timeline of state changes that led up to it.
+    """
+    if _active_level != "full":
+        return
+    try:
+        import sentry_sdk
+        sentry_sdk.add_breadcrumb(
+            category=category,
+            message=message,
+            level=level,
+            data={k: v for k, v in data.items() if v is not None} or None,
+        )
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def capture_exception(exc: BaseException, **tags: Any) -> None:
+    """Send an exception that we caught (so it isn't dropped on the floor).
+
+    Active for both 'errors' and 'full' levels.
+    """
+    if _active_level == "none":
+        return
+    try:
+        import sentry_sdk
+        with sentry_sdk.push_scope() as scope:
+            for k, v in tags.items():
+                if v is not None:
+                    scope.set_tag(k, str(v))
+            sentry_sdk.capture_exception(exc)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def capture_message(message: str, level: str = "info", **tags: Any) -> None:
+    """Send an explicit message event. Active when telemetry == full."""
+    if _active_level != "full":
+        return
+    try:
+        import sentry_sdk
+        with sentry_sdk.push_scope() as scope:
+            for k, v in tags.items():
+                if v is not None:
+                    scope.set_tag(k, str(v))
+            sentry_sdk.capture_message(message, level=level)
+    except Exception:  # noqa: BLE001
+        pass
