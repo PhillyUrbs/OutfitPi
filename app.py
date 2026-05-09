@@ -163,7 +163,7 @@ def create_app(config_path: Path | None = None) -> Flask:
             validate_config(cfg)
             save_config(cfg_path, cfg)
         except (ConfigError, ValueError, KeyError, TypeError) as exc:
-            return jsonify({"error": str(exc)}), 400
+            return jsonify({"error": _safe_error(exc)}), 400
 
         logger.info("Setup completed; restarting to apply bind changes")
         # Always restart after setup so binding (0.0.0.0 vs 127.0.0.1) and Sentry init reload.
@@ -185,7 +185,7 @@ def create_app(config_path: Path | None = None) -> Flask:
             return jsonify({"error": "location_not_configured"}), 400
         except LocationError as exc:
             _capture_exc(exc, route="/api/weather", phase="get_location")
-            return jsonify({"error": "location_error", "detail": str(exc)}), 502
+            return jsonify({"error": "location_error", "detail": _safe_error(exc)}), 502
 
         weather = fetch_current_weather(loc.latitude, loc.longitude, cfg.units.temperature)
         if weather is None:
@@ -249,6 +249,7 @@ def create_app(config_path: Path | None = None) -> Flask:
             )
             sha = result.stdout.strip()
         except (FileNotFoundError, subprocess.SubprocessError):
+            # No git or repo unavailable; ship without the SHA.
             pass
         return jsonify({"ok": True, "version": __version__, "sha": sha})
 
@@ -329,7 +330,7 @@ def create_app(config_path: Path | None = None) -> Flask:
                 remote_access=(data.get("web_remote") or {}).get("enabled"),
                 refresh_minutes=data.get("refresh_interval_minutes"),
             )
-            return jsonify({"error": str(exc)}), 400
+            return jsonify({"error": _safe_error(exc)}), 400
         # Re-apply tags now that config changed.
         _set_tags({
             "channel": cfg.updates.channel,
@@ -358,7 +359,7 @@ def create_app(config_path: Path | None = None) -> Flask:
             validate_config(defaults)
             save_config(cfg_path, defaults)
         except ConfigError as exc:
-            return jsonify({"error": str(exc)}), 400
+            return jsonify({"error": _safe_error(exc)}), 400
         return jsonify({"ok": True})
 
     @app.post("/api/remote-access")
@@ -372,7 +373,7 @@ def create_app(config_path: Path | None = None) -> Flask:
             validate_config(cfg)
             save_config(cfg_path, cfg)
         except ConfigError as exc:
-            return jsonify({"error": str(exc)}), 400
+            return jsonify({"error": _safe_error(exc)}), 400
 
         warning = None
         if was_enabled and not enabled and request.remote_addr not in {"127.0.0.1", "::1"}:
@@ -440,7 +441,7 @@ def create_app(config_path: Path | None = None) -> Flask:
             loc = geocode_zip(country, zip_code)
         except LocationError as exc:
             _capture_exc(exc, route="/api/geocode/zip", country=country)
-            return jsonify({"error": str(exc)}), 400
+            return jsonify({"error": _safe_error(exc)}), 400
         return jsonify(
             {
                 "latitude": loc.latitude,
@@ -467,6 +468,7 @@ def create_app(config_path: Path | None = None) -> Flask:
         if ico.exists():
             return send_from_directory(ico.parent, ico.name)
         abort(404)
+        return None  # unreachable; satisfies static analysis
 
     return app
 
@@ -488,6 +490,24 @@ def _weather_to_dict(weather, units: str) -> dict | None:
     d = asdict(weather)
     d["units_temperature"] = units
     return d
+
+
+# Exception types whose `str(exc)` is human-authored and safe to expose
+# in API responses (they're intentional validation messages).
+_SAFE_ERROR_TYPES = (ConfigError, LocationError)
+
+
+def _safe_error(exc: BaseException) -> str:
+    """Return a response-safe error message.
+
+    For exceptions in the allowlist (config/location validation), use the
+    real message — those are written for end users. For everything else,
+    return a generic string so we don't leak stack traces or internal
+    details. The full exception is captured in telemetry separately.
+    """
+    if isinstance(exc, _SAFE_ERROR_TYPES):
+        return str(exc)
+    return "Request failed. See server logs for details."
 
 
 def _build_config_from_payload(data: dict[str, Any]) -> Config:
