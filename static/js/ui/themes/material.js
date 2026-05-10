@@ -13,18 +13,11 @@ async function ensureMaterialLoaded() {
   if (_loaded) return;
   if (_loadPromise) return _loadPromise;
   _loadPromise = (async () => {
-    // Import only the components we use (tree-shakes via esm.sh).
-    await Promise.all([
-      import(`${ESM_BASE}/slider/slider.js?bundle`),
-      import(`${ESM_BASE}/button/filled-button.js?bundle`),
-      import(`${ESM_BASE}/button/outlined-button.js?bundle`),
-      import(`${ESM_BASE}/button/text-button.js?bundle`),
-      import(`${ESM_BASE}/switch/switch.js?bundle`),
-      import(`${ESM_BASE}/select/filled-select.js?bundle`),
-      import(`${ESM_BASE}/select/select-option.js?bundle`),
-      import(`${ESM_BASE}/textfield/filled-text-field.js?bundle`),
-      import(`${ESM_BASE}/radio/radio.js?bundle`),
-    ]);
+    // Load every component from a single bundle so shared dependencies
+    // like md-focus-ring are only registered once. Importing each
+    // component separately via ?bundle would duplicate-register and
+    // throw NotSupportedError.
+    await import(`${ESM_BASE}/all.js?bundle`);
     _loaded = true;
   })();
   return _loadPromise;
