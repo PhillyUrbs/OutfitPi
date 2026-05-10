@@ -42,6 +42,28 @@ body[data-ui-framework="primer"][data-ui-colorway="default"] {
   --ui-accent: #1f883d;
 }
 
+/* Non-native frameworks tone down the kid palette so the dashboard
+ * matches the active design system. Panes become neutral surfaces
+ * tinted from the accent; weather pane keeps a soft accent wash
+ * instead of bright sun-yellow. The native theme is unaffected. */
+body[data-ui-framework="material"],
+body[data-ui-framework="fluent"],
+body[data-ui-framework="primer"] {
+  --grass: color-mix(in srgb, var(--ui-accent, #888) 14%, #f3f3f3);
+  --sun:   color-mix(in srgb, var(--ui-accent, #888)  8%, #ffffff);
+  --sky:   var(--ui-accent, #6750a4);
+  --day-bg: #f7f7f9;
+}
+body[data-ui-framework="material"].night,
+body[data-ui-framework="fluent"].night,
+body[data-ui-framework="primer"].night,
+body[data-ui-framework="material"] .night,
+body[data-ui-framework="fluent"] .night,
+body[data-ui-framework="primer"] .night {
+  --grass: color-mix(in srgb, var(--ui-accent, #888) 22%, #1a1a1f);
+  --sun:   color-mix(in srgb, var(--ui-accent, #888) 18%, #14141a);
+}
+
 * { box-sizing: border-box; }
 
 html, body {
