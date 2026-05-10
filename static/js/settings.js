@@ -118,8 +118,17 @@
         comfortLabel.firstChild.nodeValue =
           `Comfort ${n >= 0 ? '+' : ''}${n}°F (${describeComfort(n)})`;
       };
-      // First child is a text node we mutate on input; range input is appended after.
       comfortLabel.append(`Comfort ${offset >= 0 ? '+' : ''}${offset}°F (${describeComfort(offset)})`);
+
+      const comfortRow = document.createElement('div');
+      comfortRow.className = 'comfort-row';
+
+      const dec = document.createElement('button');
+      dec.type = 'button';
+      dec.className = 'comfort-step';
+      dec.textContent = '−';
+      dec.setAttribute('aria-label', 'Decrease comfort offset');
+
       const comfortInput = document.createElement('input');
       comfortInput.type = 'range';
       comfortInput.min = '-10';
@@ -128,8 +137,28 @@
       comfortInput.value = String(offset);
       comfortInput.dataset.i = i;
       comfortInput.dataset.k = 'comfort_offset_f';
+      comfortInput.className = 'comfort-slider';
       comfortInput.addEventListener('input', (e) => updateLabel(e.target.value));
-      comfortLabel.append(comfortInput);
+
+      const inc = document.createElement('button');
+      inc.type = 'button';
+      inc.className = 'comfort-step';
+      inc.textContent = '+';
+      inc.setAttribute('aria-label', 'Increase comfort offset');
+
+      const stepBy = (delta) => {
+        const cur = Number(comfortInput.value) || 0;
+        const next = Math.max(-10, Math.min(10, cur + delta));
+        if (next === cur) return;
+        comfortInput.value = String(next);
+        comfortInput.dispatchEvent(new Event('input', { bubbles: true }));
+        comfortInput.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      dec.addEventListener('click', (e) => { e.preventDefault(); stepBy(-1); });
+      inc.addEventListener('click', (e) => { e.preventDefault(); stepBy(+1); });
+
+      comfortRow.append(dec, comfortInput, inc);
+      comfortLabel.append(comfortRow);
 
       const rm = document.createElement('button');
       rm.type = 'button';
