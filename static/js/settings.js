@@ -330,6 +330,30 @@
     applyChannelDefaults();
     autosave();
   });
+
+  // Switching the UI framework requires a full page reload so the new
+  // theme module's vendor imports + CSS take effect cleanly. Save first
+  // (so the choice persists), then reload.
+  if ($('framework')) {
+    $('framework').addEventListener('change', async () => {
+      try {
+        if (window.OutfitPiUI && typeof window.OutfitPiUI.setFramework === 'function') {
+          await window.OutfitPiUI.setFramework($('framework').value, $('theme').value);
+        }
+      } catch {}
+      await doSave();
+      window.location.reload();
+    });
+  }
+  // Variant (light/dark/auto) takes effect immediately without reload.
+  $('theme').addEventListener('change', () => {
+    try {
+      if (window.OutfitPiUI && typeof window.OutfitPiUI.setFramework === 'function') {
+        const fw = $('framework') ? $('framework').value : 'native';
+        window.OutfitPiUI.setFramework(fw, $('theme').value);
+      }
+    } catch {}
+  });
   document.querySelector('main.settings-main').addEventListener('input', (e) => {
     // Skip the ZIP lookup field — it triggers via the Look up button.
     if (e.target.id === 'loc-zip' || e.target.id === 'loc-country') return;
