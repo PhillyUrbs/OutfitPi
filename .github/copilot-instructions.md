@@ -5,7 +5,7 @@ Kid-friendly weather-based outfit recommender displayed on a Raspberry Pi with t
 
 ### Target platforms
 - Primary: Raspberry Pi 4 running Raspberry Pi OS (Bookworm+)
-- Goal: support Pi 3/4/5 and non-Pi SBCs (Orange Pi, etc.) where possible
+- Goal: ensure core functionality (weather fetch, outfit recommendation, kiosk display, settings UI) works on Pi 3/4/5 and non-Pi SBCs (Orange Pi, etc.). Hardware-specific extras (GPIO, official touchscreen quirks) may be Pi-only.
 - Dev machine: Windows (Remote-SSH workflow)
 
 ### Tech stack
@@ -27,12 +27,21 @@ Kid-friendly weather-based outfit recommender displayed on a Raspberry Pi with t
 - Tests must pass on both Windows (dev) and Linux (Pi)
 
 ### Telemetry (add as you go, don't bolt on later)
-- Use the helpers in `outfitpi.telemetry`: `breadcrumb()`, `capture_exception()`, `capture_message()`, `set_tags()`. They no-op when telemetry is disabled, so call sites stay clean.
-- **Every new `except` that swallows or logs an error**: also call `capture_exception(exc, **context_tags)` so it surfaces in Sentry instead of being lost. Skip only for expected errors (e.g. `LocationNotConfiguredError` on a fresh install).
-- **Every new state transition** the user takes (settings save, channel switch, force install, theme change, mode override, etc.): add a `breadcrumb("category", "what happened", **safe_data)`. Breadcrumbs are full-telemetry-only and ride along for free with the next event.
-- **Every new long-running or failable operation** (update install, weather fetch, geocode, restart): add `capture_message` on success and failure with the relevant tags so we can see frequency and outage patterns.
-- Tag with: `channel`, `route`, `target_ref`, `units`, `theme`, action-specific keys. Avoid PII — `before_send` already scrubs IPs/coords/child names but the tag itself shouldn't be sensitive.
-- Frontend: route user-visible failures (failed save, failed lookup, failed install, JS errors) through `reportClientError(action, message)` (in `static/js/settings.js`) so they POST to `/api/_client/error` and surface in Sentry.
+Use the helpers in `outfitpi.telemetry`: `breadcrumb()`, `capture_exception()`, `capture_message()`, `set_tags()`. They no-op when telemetry is disabled, so call sites stay clean.
+
+#### Error handling
+- Every new `except` that swallows or logs an error: also call `capture_exception(exc, **context_tags)`. Skip only for expected errors (e.g. `LocationNotConfiguredError` on a fresh install).
+- Frontend: route user-visible failures (failed save, failed lookup, failed install, JS errors) through `reportClientError(action, message)` (in `static/js/settings.js`) so they POST to `/api/_client/error`.
+
+#### State transitions
+- Every new user-driven state change (settings save, channel switch, force install, theme change, mode override, etc.): add `breadcrumb("category", "what happened", **safe_data)`. Breadcrumbs are full-telemetry-only and ride along with the next event for free.
+
+#### Long-running or failable operations
+- Every new long-running or failable operation (update install, weather fetch, geocode, restart): add `capture_message` on success and failure with the relevant tags so we can see frequency and outage patterns.
+
+#### Tagging
+- Tag with: `channel`, `route`, `target_ref`, `units`, `theme`, and action-specific keys.
+- Avoid PII — `before_send` already scrubs IPs/coords/child names, but the tag itself shouldn't be sensitive.
 
 ### No paid services
 - Do not suggest paid APIs, extensions, or cloud services
