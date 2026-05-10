@@ -1,0 +1,89 @@
+name: Auto-resolve bot review threads
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+  check_suite:
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  resolve:
+    name: resolve-bot-threads
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'pull_request_target' ||
+      (github.event_name == 'check_suite' && github.event.check_suite.conclusion == 'success')
+    steps:
+      - name: Resolve threads from automated bots
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Bots whose unresolved comments shouldn't block merges. They're
+          # advisory; humans still review the diff.
+          BOT_LOGINS: github-advanced-security copilot-pull-request-reviewer
+        run: |
+          set -euo pipefail
+
+          # Discover open PRs to act on. For PR-triggered runs, just this PR;
+          # for check_suite or dispatch, all open PRs targeting protected branches.
+          if [ "${{ github.event_name }}" = "pull_request_target" ]; then
+            PRS="${{ github.event.pull_request.number }}"
+          else
+            PRS=$(gh pr list --repo "${{ github.repository }}" \
+              --state open --base main --json number --jq '.[].number')
+            PRS="$PRS $(gh pr list --repo "${{ github.repository }}" \
+              --state open --base beta --json number --jq '.[].number')"
+          fi
+
+          for pr in $PRS; do
+            [ -z "$pr" ] && continue
+            echo "::group::PR #$pr"
+            # Fetch all unresolved threads with the comment author login.
+            threads=$(gh api graphql -f query="
+              query(\$owner: String!, \$repo: String!, \$pr: Int!) {
+                repository(owner: \$owner, name: \$repo) {
+                  pullRequest(number: \$pr) {
+                    reviewThreads(first: 50) {
+                      nodes {
+                        id
+                        isResolved
+                        comments(first: 1) {
+                          nodes { author { login } }
+                        }
+                      }
+                    }
+                  }
+                }
+              }" -F owner="${{ github.repository_owner }}" \
+                 -F repo="${{ github.event.repository.name }}" \
+                 -F pr="$pr")
+
+            ids=$(echo "$threads" | jq -r --arg bots "$BOT_LOGINS" '
+              ($bots | split(" ")) as $bot_logins |
+              .data.repository.pullRequest.reviewThreads.nodes[] |
+              select(.isResolved == false) |
+              select(.comments.nodes[0].author.login as $a |
+                     $bot_logins | index($a)) |
+              .id')
+
+            if [ -z "$ids" ]; then
+              echo "Nothing to resolve."
+              echo "::endgroup::"
+              continue
+            fi
+
+            for id in $ids; do
+              gh api graphql -f query="
+                mutation(\$id: ID!) {
+                  resolveReviewThread(input:{threadId: \$id}) {
+                    thread { isResolved }
+                  }
+                }" -F id="$id" >/dev/null
+              echo "Resolved $id"
+            done
+            echo "::endgroup::"
+          done
