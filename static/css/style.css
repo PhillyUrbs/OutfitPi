@@ -24,17 +24,19 @@ body[data-ui-colorway]:not([data-ui-colorway="default"]) {
   --orange: var(--ui-accent, #FF9F43);
 }
 /* When a non-native framework is active with the default colorway,
- * follow that framework's own primary so leftover .ref-item / .dev-
- * install / button styles don't render brand-orange against an
- * unrelated palette. */
+ * follow that framework's documented primary so leftover .ref-item
+ * / .dev-install / button styles don't render brand-orange against
+ * an unrelated palette. Material's --md-sys-color-primary is bound
+ * inside its own components and isn't readable from <body>, so we
+ * hardcode each framework's baseline here. */
 body[data-ui-framework="material"][data-ui-colorway="default"] {
-  --orange: var(--md-sys-color-primary, #FF9F43);
+  --orange: #6750a4; /* Material 3 baseline primary */
 }
 body[data-ui-framework="fluent"][data-ui-colorway="default"] {
-  --orange: var(--colorBrandBackground, #0078d4);
+  --orange: #0078d4; /* Fluent brand */
 }
 body[data-ui-framework="primer"][data-ui-colorway="default"] {
-  --orange: #1f883d;
+  --orange: #1f883d; /* Primer accent green */
 }
 
 * { box-sizing: border-box; }
