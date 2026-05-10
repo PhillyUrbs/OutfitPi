@@ -82,6 +82,39 @@ logging.basicConfig(
 logger = logging.getLogger("outfitpi")
 
 
+def _load_or_create_secret_key(cfg_path: Path) -> str:
+    """Return a stable Flask secret key.
+
+    Order of precedence:
+      1. ``OUTFITPI_SECRET_KEY`` env var (operator override).
+      2. ``.secret_key`` file alongside the config; created on first run.
+    Without this, a new random key is generated at every process start
+    and every CSRF token already in the user's open kiosk page is
+    invalidated, producing "CSRF token missing or invalid" on the next
+    save.
+    """
+    env = os.environ.get("OUTFITPI_SECRET_KEY")
+    if env:
+        return env
+    key_path = cfg_path.parent / ".secret_key"
+    try:
+        if key_path.exists():
+            existing = key_path.read_text(encoding="utf-8").strip()
+            if existing:
+                return existing
+        key_path.parent.mkdir(parents=True, exist_ok=True)
+        new_key = secrets.token_hex(32)
+        key_path.write_text(new_key, encoding="utf-8")
+        try:
+            os.chmod(key_path, 0o600)
+        except OSError:
+            pass
+        return new_key
+    except OSError as exc:
+        logger.warning("Could not persist secret key (%s); using ephemeral", exc)
+        return secrets.token_hex(32)
+
+
 def create_app(config_path: Path | None = None) -> Flask:
     cfg_path = Path(config_path) if config_path else CONFIG_PATH
     app = Flask(
@@ -89,10 +122,14 @@ def create_app(config_path: Path | None = None) -> Flask:
         template_folder=str(BASE_DIR / "templates"),
         static_folder=str(BASE_DIR / "static"),
     )
-    app.config["SECRET_KEY"] = os.environ.get("OUTFITPI_SECRET_KEY", secrets.token_hex(32))
+    app.config["SECRET_KEY"] = _load_or_create_secret_key(cfg_path)
     app.config["CONFIG_PATH"] = cfg_path
     app.config["BABEL_DEFAULT_LOCALE"] = "en"
     app.config["BABEL_TRANSLATION_DIRECTORIES"] = str(BASE_DIR / "translations")
+    # Disable CSRF token expiry: this is a long-running kiosk page that
+    # may sit open all day; with the default 1h limit, the first slider
+    # change after lunch fails with "CSRF token missing or invalid".
+    app.config["WTF_CSRF_TIME_LIMIT"] = None
 
     CSRFProtect(app)
 
