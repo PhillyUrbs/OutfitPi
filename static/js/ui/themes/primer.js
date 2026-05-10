@@ -4,8 +4,8 @@
 // / data-dark-theme on <body>.
 import nativeTheme from './native.js';
 
-const PRIMER_VERSION = '21.5.4';
-const PRIMER_CSS = `https://esm.sh/@primer/css@${PRIMER_VERSION}/dist/primer.css`;
+const PRIMER_VERSION = '21.1.1';
+const PRIMER_CSS = `https://cdnjs.cloudflare.com/ajax/libs/Primer/${PRIMER_VERSION}/primer.min.css`;
 
 let _stylesAttached = false;
 
