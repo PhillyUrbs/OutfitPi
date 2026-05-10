@@ -18,9 +18,9 @@ with sync_playwright() as p:
             }, true);
         });
     }""")
-    sel = page.locator('md-filled-select[id=channel]')
+    sel = page.locator('md-filled-select#channel')
     sel.scroll_into_view_if_needed()
-    sel.click()
+    sel.click(force=True)
     page.wait_for_timeout(1200)
     events = page.evaluate('window._events')
     import json

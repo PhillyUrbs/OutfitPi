@@ -45,7 +45,10 @@ function shouldSkipInput(el) {
 }
 
 function copyAttrs(src, dst) {
-  if (src.id) dst.id = src.id;
+  // Skip id intentionally so $('foo') in page-specific JS keeps
+  // resolving to the proxy (where settings.js writes values). The
+  // enhancer's syncReplacement reads from the proxy and pushes into
+  // the replacement, so the replacement doesn't need an id of its own.
   if (src.className) dst.className = src.className;
   if (src.name) dst.name = src.name;
   for (const a of src.attributes) {
@@ -53,24 +56,17 @@ function copyAttrs(src, dst) {
       dst.setAttribute(a.name, a.value);
     }
   }
-  // Strip id from the proxy after copying so $('channel') returns the
-  // themed replacement and not the hidden form-internal select that
-  // existed before enhancement. Other code that needs the proxy can
-  // still find it via [data-ui-original-id].
-  if (src.id) {
-    src.dataset.uiOriginalId = src.id;
-    src.removeAttribute('id');
-  }
 }
 
 function hideProxy(el) {
   el.style.display = 'none';
   el.dataset.uiProxy = '1';
-  // Render the proxy fully inert so no synthesized click/focus on it
-  // can re-enter the active framework's logic. Material's
-  // <md-filled-select> programmatically clicks its internal form-
-  // associated <select>; that bubbled event closes the open menu.
-  // disabled + tabindex=-1 stops the focus-steal cascade entirely.
+  // Render the proxy inert so synthesized clicks/focus on it can't
+  // re-enter the active framework's logic. Material's <md-filled-
+  // select> programmatically clicks its internal form-associated
+  // <select>; that bubbled event was closing the menu we just opened.
+  // We can't strip the id (settings.js still uses $('foo').value to
+  // read the saved value) so we make the proxy form-inert instead.
   if (el.tagName === 'SELECT' || el.tagName === 'INPUT' ||
       el.tagName === 'TEXTAREA') {
     el.disabled = true;
