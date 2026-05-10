@@ -169,9 +169,12 @@ const material = {
     for (const opt of options) {
       const lab = document.createElement('label');
       const r = document.createElement('md-radio');
-      r.name = name;
-      r.value = opt.value;
-      if (String(opt.value) === String(value)) r.checked = true;
+      r.setAttribute('name', name);
+      r.setAttribute('value', opt.value);
+      if (String(opt.value) === String(value)) {
+        r.checked = true;
+        r.setAttribute('checked', '');
+      }
       if (onChange) r.addEventListener('change',
         () => { if (r.checked) onChange(opt.value); });
       lab.append(r, ' ', opt.label);
