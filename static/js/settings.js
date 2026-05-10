@@ -154,6 +154,7 @@
         // (the last one observed) and write that.
         const commit = () => {
           const v = parseFloat(comfortInput.value);
+          console.log('[comfort] commit i=' + i + ' v=' + v + ' tag=' + comfortInput.tagName);
           if (Number.isNaN(v)) return;
           writeChildOffset(i, v);
           autosave();
