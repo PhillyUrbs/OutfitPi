@@ -74,6 +74,11 @@ with sync_playwright() as p:
     }""")
     print('STATE:', state, flush=True)
     page.wait_for_timeout(2000)
+    err = page.evaluate("""() => {
+        const e = document.getElementById('settings-error');
+        return { text: e ? e.textContent : null, hidden: e ? e.hidden : null };
+    }""")
+    print('ERR:', err, flush=True)
     saved = page.evaluate("""async () => {
         const r = await fetch('/api/settings');
         const j = await r.json();

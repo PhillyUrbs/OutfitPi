@@ -338,11 +338,20 @@
   let saveQueued = false;
 
   async function doSave() {
+    console.log('[doSave] enter inFlight=' + saveInFlight);
     if (saveInFlight) { saveQueued = true; return; }
     saveInFlight = true;
     const ok = $('settings-ok'), err = $('settings-error');
     err.hidden = true;
-    const payload = collect();
+    let payload;
+    try {
+      payload = collect();
+      console.log('[doSave] payload children=' + JSON.stringify(payload.children.map(c=>c.comfort_offset_f)));
+    } catch (e) {
+      console.log('[doSave] collect threw: ' + e.message);
+      saveInFlight = false;
+      return;
+    }
     const wasEnabled = cfg.web_remote.enabled;
     const willChangeBind = wasEnabled !== payload.web_remote.enabled;
     try {
