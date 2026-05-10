@@ -31,8 +31,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev] mkdocs-material mkdocs-macros-plugin mike playwright pillow
-      - name: Capture screenshots (beta/main only)
-        if: github.ref == 'refs/heads/beta' || github.ref == 'refs/heads/main' || (github.event_name == 'pull_request' && (github.base_ref == 'beta' || github.base_ref == 'main'))
+      - name: Cache Playwright browsers
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/beta' || github.ref == 'refs/heads/main')
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium
+      - name: Capture screenshots (push to beta/main only)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/beta' || github.ref == 'refs/heads/main')
         run: |
           playwright install --with-deps chromium
           python scripts/capture_docs_screenshots.py
@@ -64,7 +70,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .[dev] mkdocs-material mkdocs-macros-plugin mike playwright pillow
-          playwright install --with-deps chromium
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium
+      - name: Install Playwright (skips download if cached)
+        run: playwright install --with-deps chromium
       - name: Capture screenshots
         run: python scripts/capture_docs_screenshots.py
       - name: Configure git
