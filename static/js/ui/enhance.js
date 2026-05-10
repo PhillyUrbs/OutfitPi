@@ -58,23 +58,15 @@ function copyAttrs(src, dst) {
 function hideProxy(el) {
   el.style.display = 'none';
   el.dataset.uiProxy = '1';
-  // Stop synthesized click events on the hidden proxy from reaching
-  // Material's outside-click detector at the document level. Material's
-  // <md-filled-select> programmatically fires click on its internal
-  // form-associated <select>; that bubbles up the same composed path
-  // as a real outside click, so the menu we just opened closes
-  // immediately. preventDefault + stopImmediatePropagation here
-  // intercepts before any document-level listener.
-  if (!el._uiProxyClickGuarded) {
-    const stop = (e) => {
-      e.stopImmediatePropagation();
-      e.stopPropagation();
-      e.preventDefault();
-    };
-    el.addEventListener('click', stop, true);
-    el.addEventListener('mousedown', stop, true);
-    el.addEventListener('pointerdown', stop, true);
-    el._uiProxyClickGuarded = true;
+  // Render the proxy fully inert so no synthesized click/focus on it
+  // can re-enter the active framework's logic. Material's
+  // <md-filled-select> programmatically clicks its internal form-
+  // associated <select>; that bubbled event closes the open menu.
+  // disabled + tabindex=-1 stops the focus-steal cascade entirely.
+  if (el.tagName === 'SELECT' || el.tagName === 'INPUT' ||
+      el.tagName === 'TEXTAREA') {
+    el.disabled = true;
+    el.tabIndex = -1;
   }
 }
 
