@@ -388,6 +388,11 @@ legend { font-weight: 700; padding: 0 8px; }
   border: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
 }
 .comfort-step:active { background: #e07a1c; }
 .comfort-slider {
@@ -396,6 +401,9 @@ legend { font-weight: 700; padding: 0 8px; }
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
+  /* Let native horizontal drag drive the slider; drag-scroll handler
+     skips it via the input/.comfort-slider exclusion. */
+  touch-action: pan-x;
 }
 .comfort-slider:focus { outline: none; }
 .comfort-slider::-webkit-slider-runnable-track {
