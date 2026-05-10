@@ -213,6 +213,12 @@
   async function load() {
     // Wait for the active UI framework to finish loading so renderChildren
     // uses the right createSlider implementation on the first paint.
+    // theme-bootstrap is loaded as a module so it executes deferred —
+    // we may have to spin briefly until window.OutfitPiUI.ready exists.
+    for (let i = 0; i < 50; i++) {
+      if (window.OutfitPiUI && window.OutfitPiUI.ready) break;
+      await new Promise(r => setTimeout(r, 50));
+    }
     if (window.OutfitPiUI && window.OutfitPiUI.ready) {
       try { await window.OutfitPiUI.ready; } catch {}
     }
