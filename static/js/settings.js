@@ -137,7 +137,11 @@
         comfortInput = adapter.createSlider({
           min: -10, max: 10, step: 1, value: offset,
           ariaLabel: 'Comfort offset',
+          // Wire BOTH input and change so the label stays in sync even
+          // when a themed slider's `input` event fires before its
+          // internal value has settled (md-slider on touch can do that).
           onInput: (v) => updateLabel(v),
+          onChange: (v) => updateLabel(v),
         });
       } else {
         comfortInput = document.createElement('input');
@@ -290,6 +294,27 @@
       child[k] = parseFloat(e.target.value);
     }
     else child[k] = e.target.value;
+  });
+  // Defensive: themed sliders (md-slider, fluent-slider) sometimes fire
+  // `input` before their internal value settles. The `change` event
+  // (fired on release) gives us the authoritative final value, so use
+  // it to reconcile in-memory state and the visible label.
+  $('children-list').addEventListener('change', (e) => {
+    const i = e.target.dataset.i, k = e.target.dataset.k;
+    if (i === undefined || k !== 'comfort_offset_f') return;
+    const child = cfg.children[parseInt(i, 10)];
+    if (!child) return;
+    const v = parseFloat(e.target.value);
+    if (Number.isNaN(v)) return;
+    child[k] = v;
+    // Re-sync the visible label from the authoritative final value in
+    // case any onInput callback raced with the value update.
+    const row = e.target.closest('.child-row');
+    const label = row && row.querySelector('label');
+    if (label && label.firstChild) {
+      const sign = v >= 0 ? '+' : '';
+      label.firstChild.nodeValue = `Comfort ${sign}${v}°F (${describeComfort(v)})`;
+    }
   });
   $('children-list').addEventListener('click', (e) => {
     const i = e.target.dataset.rm;
