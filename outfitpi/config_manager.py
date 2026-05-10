@@ -19,6 +19,10 @@ VALID_THEMES = {"auto", "light", "dark"}
 # UI framework picker (controls component library used by every page).
 VALID_FRAMEWORKS = {"native", "material", "fluent", "primer"}
 VALID_VARIANTS = {"auto", "light", "dark"}
+# Accent colorway. "default" = framework's own out-of-the-box palette.
+VALID_COLORWAYS = {
+    "default", "orange", "blue", "green", "red", "purple", "teal", "yellow",
+}
 VALID_CHANNELS = {"stable", "beta", "dev"}
 # Map legacy channel names to current ones for backward compatibility.
 _CHANNEL_ALIASES = {"releases": "stable", "main": "dev"}
@@ -82,6 +86,7 @@ class Display:
     theme: str = "auto"  # "auto" | "light" | "dark" — legacy; mirrors variant.
     framework: str = "material"  # "native" | "material" | "fluent" | "primer"
     variant: str = "auto"        # "auto" | "light" | "dark"
+    colorway: str = "default"    # "default" | "orange" | "blue" | ... | "yellow"
 
 
 @dataclass
@@ -182,7 +187,10 @@ def _from_dict(data: dict[str, Any]) -> Config:
     variant = str(disp.get("variant", theme)).strip().lower()
     if variant not in VALID_VARIANTS:
         variant = theme
-    cfg.display = Display(theme=theme, framework=framework, variant=variant)
+    colorway = str(disp.get("colorway", "default")).strip().lower()
+    if colorway not in VALID_COLORWAYS:
+        colorway = "default"
+    cfg.display = Display(theme=theme, framework=framework, variant=variant, colorway=colorway)
 
     srv = data.get("server") or {}
     cfg.server = Server(port=int(srv.get("port", 5000)))
@@ -250,6 +258,8 @@ def validate_config(cfg: Config) -> None:
         raise ConfigError(f"Invalid framework: {cfg.display.framework}")
     if cfg.display.variant not in VALID_VARIANTS:
         raise ConfigError(f"Invalid variant: {cfg.display.variant}")
+    if cfg.display.colorway not in VALID_COLORWAYS:
+        raise ConfigError(f"Invalid colorway: {cfg.display.colorway}")
     if cfg.refresh_interval_minutes < 1:
         raise ConfigError("refresh_interval_minutes must be >= 1")
 

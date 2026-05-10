@@ -208,3 +208,41 @@ def test_display_invalid_framework_falls_back(tmp_path):
     cfg = load_config(p)
     assert cfg.display.framework == "material"
     assert cfg.display.variant == "auto"
+
+
+def test_display_colorway_default(tmp_path):
+    from outfitpi.config_manager import load_config
+    p = tmp_path / "config.yaml"
+    p.write_text(
+        "children: [{name: K, gender: boy, comfort_offset_f: 0}]\n"
+        "location: {latitude: 40.0, longitude: -75.0}\n",
+        encoding="utf-8",
+    )
+    cfg = load_config(p)
+    assert cfg.display.colorway == "default"
+
+
+def test_display_colorway_invalid_falls_back(tmp_path):
+    from outfitpi.config_manager import load_config
+    p = tmp_path / "config.yaml"
+    p.write_text(
+        "children: [{name: K, gender: boy, comfort_offset_f: 0}]\n"
+        "location: {latitude: 40.0, longitude: -75.0}\n"
+        "display: {colorway: chartreuse}\n",
+        encoding="utf-8",
+    )
+    cfg = load_config(p)
+    assert cfg.display.colorway == "default"
+
+
+def test_display_colorway_valid_loads(tmp_path):
+    from outfitpi.config_manager import load_config
+    p = tmp_path / "config.yaml"
+    p.write_text(
+        "children: [{name: K, gender: boy, comfort_offset_f: 0}]\n"
+        "location: {latitude: 40.0, longitude: -75.0}\n"
+        "display: {colorway: blue}\n",
+        encoding="utf-8",
+    )
+    cfg = load_config(p)
+    assert cfg.display.colorway == "blue"

@@ -574,7 +574,10 @@ def _build_config_from_payload(data: dict[str, Any]) -> Config:
     variant = str(disp.get("variant", theme)).strip().lower()
     if variant not in {"auto", "light", "dark"}:
         variant = theme
-    cfg.display = Display(theme=theme, framework=framework, variant=variant)
+    colorway = str(disp.get("colorway", "default")).strip().lower()
+    if colorway not in {"default", "orange", "blue", "green", "red", "purple", "teal", "yellow"}:
+        colorway = "default"
+    cfg.display = Display(theme=theme, framework=framework, variant=variant, colorway=colorway)
 
     srv = data.get("server") or {}
     cfg.server = Server(port=int(srv.get("port", 5000)))

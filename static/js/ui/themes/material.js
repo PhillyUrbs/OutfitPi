@@ -23,58 +23,30 @@ async function ensureMaterialLoaded() {
   return _loadPromise;
 }
 
-// Material Web reads design tokens from CSS custom properties on its
-// host. Inject a minimal theme block so light/dark feel right and the
-// tokens line up with our orange accent.
 function ensureThemeStyles() {
   if (document.getElementById('material-theme-tokens')) return;
   const style = document.createElement('style');
   style.id = 'material-theme-tokens';
   style.textContent = `
-    /* Light defaults */
-    body[data-ui-framework="material"] {
-      --md-sys-color-primary: #ff9f43;
-      --md-sys-color-on-primary: #ffffff;
-      --md-sys-color-primary-container: #ffe5cc;
-      --md-sys-color-on-primary-container: #2a1900;
-      --md-sys-color-surface: #fffdf6;
-      --md-sys-color-on-surface: #1b2233;
-      --md-sys-color-error: #c62828;
-      --md-sys-color-on-error: #ffffff;
-      --md-sys-color-outline: #c6cbd1;
-      --md-sys-color-secondary-container: #fde9d4;
-      --md-sys-color-on-secondary-container: #2a1900;
+    /* When a non-default colorway is active, derive Material tokens
+       from the shared --ui-accent vars defined in colorways.css.
+       Default colorway leaves Material's baseline palette alone. */
+    body[data-ui-framework="material"][data-ui-colorway]:not([data-ui-colorway="default"]) {
+      --md-sys-color-primary: var(--ui-accent);
+      --md-sys-color-on-primary: var(--ui-accent-on);
+      --md-sys-color-primary-container: var(--ui-accent-container);
+      --md-sys-color-on-primary-container: var(--ui-accent-on-container);
+      --md-sys-color-secondary-container: var(--ui-accent-container);
+      --md-sys-color-on-secondary-container: var(--ui-accent-on-container);
     }
-    body[data-ui-framework="material"][data-ui-variant="dark"],
-    body[data-ui-framework="material"].night {
-      --md-sys-color-primary: #ffb874;
-      --md-sys-color-on-primary: #1f1300;
-      --md-sys-color-primary-container: #5a3a14;
-      --md-sys-color-on-primary-container: #ffe5cc;
-      --md-sys-color-surface: #14213d;
-      --md-sys-color-on-surface: #f0f4ff;
-      --md-sys-color-error: #ff8a7a;
-      --md-sys-color-on-error: #1f0d0a;
-      --md-sys-color-outline: #344066;
-      --md-sys-color-secondary-container: #2a3a72;
-      --md-sys-color-on-secondary-container: #f0f4ff;
-    }
-    /* Make sliders/buttons fill their grid cell. */
+    /* Fill its grid cell. */
     body[data-ui-framework="material"] md-slider {
       width: 100%;
-      /* The host page sets touch-action: pan-y on <main> for the drag-
-         scroll fallback; without overriding here, Chromium classifies
-         the first touch as a vertical scroll and the slider never sees
-         pointermove. 'none' lets md-slider run its own touch handlers. */
       touch-action: none;
-      /* Make sure the gradient track + native CSS thumb from
-         .comfort-slider don't bleed onto the md-slider host. */
       background: transparent !important;
       height: auto !important;
     }
     body[data-ui-framework="material"] .comfort-row { touch-action: none; }
-    /* Material slider has its own affordances; hide the +/- step buttons
-       we added for the native slider. */
     body[data-ui-framework="material"] .comfort-row .comfort-step {
       display: none;
     }

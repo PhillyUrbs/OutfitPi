@@ -15,10 +15,17 @@ window.OutfitPiUI.ready = new Promise((res) => { _readyResolve = res; });
 
 const KEY_FRAMEWORK = 'outfitpi_framework';
 const KEY_VARIANT   = 'outfitpi_variant';
+const KEY_COLORWAY  = 'outfitpi_colorway';
+
+function applyColorway(colorway) {
+  document.body.dataset.uiColorway = colorway || 'default';
+}
 
 async function bootFromCache() {
   const fw = localStorage.getItem(KEY_FRAMEWORK) || 'material';
   const variant = localStorage.getItem(KEY_VARIANT) || 'auto';
+  const colorway = localStorage.getItem(KEY_COLORWAY) || 'default';
+  applyColorway(colorway);
   await loadTheme(fw, variant);
 }
 
@@ -30,18 +37,30 @@ async function syncFromConfig() {
     const d = cfg.display || {};
     const fw = d.framework || 'material';
     const variant = d.variant || d.theme || 'auto';
+    const colorway = d.colorway || 'default';
     localStorage.setItem(KEY_FRAMEWORK, fw);
     localStorage.setItem(KEY_VARIANT, variant);
+    localStorage.setItem(KEY_COLORWAY, colorway);
+    applyColorway(colorway);
     await loadTheme(fw, variant);
   } catch {}
 }
 
 window.OutfitPiUI = {
   ...window.OutfitPiUI,
-  async setFramework(fw, variant) {
-    if (fw)      localStorage.setItem(KEY_FRAMEWORK, fw);
-    if (variant) localStorage.setItem(KEY_VARIANT, variant);
+  async setFramework(fw, variant, colorway) {
+    if (fw)       localStorage.setItem(KEY_FRAMEWORK, fw);
+    if (variant)  localStorage.setItem(KEY_VARIANT, variant);
+    if (colorway) {
+      localStorage.setItem(KEY_COLORWAY, colorway);
+      applyColorway(colorway);
+    }
     await loadTheme(fw, variant);
+  },
+  setColorway(colorway) {
+    if (!colorway) return;
+    localStorage.setItem(KEY_COLORWAY, colorway);
+    applyColorway(colorway);
   },
 };
 

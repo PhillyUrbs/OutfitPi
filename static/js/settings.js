@@ -208,6 +208,9 @@
     if ($('framework')) {
       $('framework').value = (cfg.display && cfg.display.framework) || 'material';
     }
+    if ($('colorway')) {
+      $('colorway').value = (cfg.display && cfg.display.colorway) || 'default';
+    }
   }
 
   async function load() {
@@ -248,6 +251,7 @@
       theme: $('theme').value,
       framework: $('framework') ? $('framework').value : (cfg.display && cfg.display.framework) || 'material',
       variant: $('theme').value,
+      colorway: $('colorway') ? $('colorway').value : (cfg.display && cfg.display.colorway) || 'default',
     };
     return out;
   }
@@ -367,10 +371,21 @@
     try {
       if (window.OutfitPiUI && typeof window.OutfitPiUI.setFramework === 'function') {
         const fw = $('framework') ? $('framework').value : 'native';
-        window.OutfitPiUI.setFramework(fw, $('theme').value);
+        const cw = $('colorway') ? $('colorway').value : 'default';
+        window.OutfitPiUI.setFramework(fw, $('theme').value, cw);
       }
     } catch {}
   });
+  // Colorway change: immediate, no reload — just flip the body attr.
+  if ($('colorway')) {
+    $('colorway').addEventListener('change', () => {
+      try {
+        if (window.OutfitPiUI && typeof window.OutfitPiUI.setColorway === 'function') {
+          window.OutfitPiUI.setColorway($('colorway').value);
+        }
+      } catch {}
+    });
+  }
   document.querySelector('main.settings-main').addEventListener('input', (e) => {
     // Skip the ZIP lookup field — it triggers via the Look up button.
     if (e.target.id === 'loc-zip' || e.target.id === 'loc-country') return;

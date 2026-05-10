@@ -7,6 +7,7 @@
   <title>OutfitPi Settings</title>
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/colorways.css') }}">
   <script src="{{ url_for('static', filename='js/theme.js') }}" defer></script>
   <script type="module" src="{{ url_for('static', filename='js/theme-bootstrap.js') }}"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/simple-keyboard/index.css') }}">
@@ -134,6 +135,18 @@
           <option value="material">Material</option>
           <option value="fluent" disabled>Fluent (coming soon)</option>
           <option value="primer" disabled>Primer (coming soon)</option>
+        </select>
+      </label>
+      <label>Accent color
+        <select id="colorway">
+          <option value="default">Default (framework's own)</option>
+          <option value="orange">Orange</option>
+          <option value="blue">Blue</option>
+          <option value="green">Green</option>
+          <option value="red">Red</option>
+          <option value="purple">Purple</option>
+          <option value="teal">Teal</option>
+          <option value="yellow">Yellow</option>
         </select>
       </label>
       <p class="hint">Switching frameworks reloads the page. Custom themes can be added by dropping a JS module into <code>static/js/ui/themes/</code>.</p>

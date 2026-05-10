@@ -17,6 +17,13 @@
   --bottombar-h: 36px;
 }
 
+/* When a non-default colorway is active, redirect --orange (the
+ * native theme's accent) to the chosen color. Default colorway leaves
+ * --orange untouched so today's brand keeps working. */
+body[data-ui-colorway]:not([data-ui-colorway="default"]) {
+  --orange: var(--ui-accent, #FF9F43);
+}
+
 * { box-sizing: border-box; }
 
 html, body {
