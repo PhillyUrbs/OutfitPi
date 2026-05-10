@@ -25,6 +25,7 @@ function inSkipParent(el) {
 function shouldSkipButton(btn) {
   if (btn.dataset.noEnhance === '1') return true;
   if (btn.dataset.uiEnhanced === '1') return true;
+  if (btn.dataset.uiProxy === '1') return true;
   if (SKIP_BUTTON_CLASSES.some(c => btn.classList.contains(c))) return true;
   if (inSkipParent(btn)) return true;
   if (btn.dataset.rm !== undefined) return true;
@@ -34,8 +35,12 @@ function shouldSkipButton(btn) {
 function shouldSkipInput(el) {
   if (el.dataset.noEnhance === '1') return true;
   if (el.dataset.uiEnhanced === '1') return true;
+  if (el.dataset.uiProxy === '1') return true;
   if (el.dataset.uiSlider === '1') return true;
   if (inSkipParent(el)) return true;
+  // Skip if this element's parent label has already been hidden as a proxy.
+  const lab = el.closest('label');
+  if (lab && lab.dataset.uiProxy === '1') return true;
   return false;
 }
 
