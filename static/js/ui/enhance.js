@@ -58,6 +58,14 @@ function copyAttrs(src, dst) {
 function hideProxy(el) {
   el.style.display = 'none';
   el.dataset.uiProxy = '1';
+  // Stop synthesized click events on the hidden proxy from bubbling.
+  // Material's <md-filled-select> opens its menu, then somehow fires
+  // a click event that hits the proxy <select>; if it bubbles back
+  // up, Material's outside-click detector closes the menu instantly.
+  if (!el._uiProxyClickGuarded) {
+    el.addEventListener('click', (e) => e.stopPropagation(), true);
+    el._uiProxyClickGuarded = true;
+  }
 }
 
 /** Re-read the proxy's current value into its themed replacement. Used

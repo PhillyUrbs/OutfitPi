@@ -184,7 +184,18 @@
       row.append(nameInput, genderSel, comfortLabel, rm);
       list.append(row);
     });
-    $('add-child').disabled = cfg.children.length >= 2;
+    const atCap = cfg.children.length >= 2;
+    $('add-child').disabled = atCap;
+    $('add-child').hidden = atCap;
+    // Themed replacement (md-outlined-button etc.) lives next to the
+    // proxy and was hidden via display:none on the proxy; we need to
+    // toggle the replacement's visibility too.
+    let r = $('add-child').nextSibling;
+    while (r && r.nodeType !== 1) r = r.nextSibling;
+    if (r && r.dataset && r.dataset.uiEnhanced === '1') {
+      r.hidden = atCap;
+      r.style.display = atCap ? 'none' : '';
+    }
   }
 
   function renderAll() {

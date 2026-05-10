@@ -385,11 +385,13 @@ legend { font-weight: 700; padding: 0 8px; }
   grid-template-areas:
     "name gender remove"
     "comfort comfort comfort";
-  gap: 8px;
+  gap: 12px;
   align-items: center;
-  padding: 8px 0;
+  padding: 16px 0;
   border-bottom: 1px solid #e8eef5;
 }
+.child-row + .child-row { padding-top: 16px; }
+.child-row:last-of-type { border-bottom: none; }
 .child-row > input[type="text"] { grid-area: name; }
 .child-row > select { grid-area: gender; }
 .child-row > button.danger { grid-area: remove; }
