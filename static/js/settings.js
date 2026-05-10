@@ -147,14 +147,37 @@
         updateLabel(v);
       };
       if (adapter && typeof adapter.createSlider === 'function') {
+        // Capture the LATEST authoritative value seen across input,
+        // change, pointerup, and a delayed re-read. md-slider on touch
+        // can fire input/change with .value still pointing at the
+        // previous tick, so we keep the highest-confidence reading
+        // (the last one observed) and write that.
+        const commit = () => {
+          const v = parseFloat(comfortInput.value);
+          if (Number.isNaN(v)) return;
+          writeChildOffset(i, v);
+          autosave();
+        };
+        const commitDeferred = () => {
+          // Run now, next frame, and after a touch-settle delay so
+          // whichever fires last (with the final value) wins.
+          commit();
+          requestAnimationFrame(commit);
+          setTimeout(commit, 60);
+        };
         comfortInput = adapter.createSlider({
           min: -10, max: 10, step: 1, value: offset,
           ariaLabel: 'Comfort offset',
-          onInput:  () => requestAnimationFrame(
-            () => writeChildOffset(i, comfortInput.value)),
-          onChange: () => requestAnimationFrame(
-            () => writeChildOffset(i, comfortInput.value)),
+          onInput:  commitDeferred,
+          onChange: commitDeferred,
         });
+        // Touchscreen safety net: md-slider events don't bubble through
+        // its Shadow DOM to the document-level autosave listener, and
+        // its `change` event sometimes fires with a one-tick-stale
+        // value on touch. Listen for pointerup on the host as a final
+        // commit point.
+        comfortInput.addEventListener('pointerup', commitDeferred);
+        comfortInput.addEventListener('touchend',  commitDeferred);
       } else {
         comfortInput = document.createElement('input');
         comfortInput.type = 'range';
@@ -181,9 +204,9 @@
         const cur = Number(comfortInput.value) || 0;
         const next = Math.max(-10, Math.min(10, cur + delta));
         if (next === cur) return;
-        comfortInput.value = String(next);
-        comfortInput.dispatchEvent(new Event('input', { bubbles: true }));
-        comfortInput.dispatchEvent(new Event('change', { bubbles: true }));
+        comfortInput.value = next;
+        writeChildOffset(i, next);
+        autosave();
       };
       dec.addEventListener('click', (e) => { e.preventDefault(); stepBy(-1); });
       inc.addEventListener('click', (e) => { e.preventDefault(); stepBy(+1); });
