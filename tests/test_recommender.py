@@ -126,3 +126,29 @@ def test_uses_apparent_max_for_outfit(th):
     w = replace(_w(50), apparent_max=80.0)  # cold now, hot peak
     rec = recommend_outfit(w, Child(name="K", gender="boy"), th, now=NOON)
     assert rec.tier_name == "hot"
+
+
+def test_afternoon_temp_overrides_daily_max(th):
+    # afternoon (62) is what kids will play in; daily max (80) is at 11am.
+    w = replace(_w(50), apparent_afternoon=62.0, apparent_max=80.0)
+    rec = recommend_outfit(w, Child(name="K", gender="boy"), th, now=NOON)
+    assert rec.tier_name == "cool"
+    assert "afternoon" in rec.reason.lower()
+
+
+def test_no_layer_in_recommendation(th):
+    # Even when cold, recommender should not return layer/jacket fields —
+    # coats are decided at the door.
+    w = replace(_w(35), apparent_afternoon=35.0, apparent_min=20.0)
+    rec = recommend_outfit(w, Child(name="K", gender="boy"), th, now=NOON)
+    assert rec.tier_name == "cold"
+    assert rec.layer is None
+    assert rec.layer_icon is None
+
+
+def test_precip_alert_uses_afternoon_code(th):
+    # Snow code in afternoon window even though current weather is clear.
+    w = replace(_w(40), apparent_afternoon=40.0, afternoon_weather_code=73)
+    rec = recommend_outfit(w, Child(name="K", gender="boy"), th, now=NOON)
+    assert rec.rain_alert is not None
+    assert "snow" in rec.rain_alert.lower()

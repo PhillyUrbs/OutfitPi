@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from .config_manager import Child, Thresholds, c_to_f
-from .weather import CurrentWeather
+from .weather import RAIN_CODES, SNOW_CODES, CurrentWeather
 
 
 @dataclass
@@ -124,9 +124,13 @@ def recommend_outfit(
             is_evening=True,
         )
 
-    # Use the day's apparent peak temperature for outfit choice (so kids dress
-    # for the warmest part of the day, not the chilly morning).
-    if weather.apparent_max is not None:
+    # Drive base-layer recommendations from the afternoon outdoor window
+    # (12:00–17:00). Coats and jackets are decided at the door, so we only
+    # output top + bottom here.
+    forecast_label = "this afternoon feels like"
+    if weather.apparent_afternoon is not None:
+        forecast_f = _to_fahrenheit(weather.apparent_afternoon, weather.units_temperature)
+    elif weather.apparent_max is not None:
         forecast_f = _to_fahrenheit(weather.apparent_max, weather.units_temperature)
         forecast_label = "today's high feels like"
     else:
@@ -137,23 +141,16 @@ def recommend_outfit(
     tier = _tier(effective_f, thresholds)
     top, bottom, top_icon, bottom_icon = _OUTFITS[(tier, child.gender)]
 
-    # Add a jacket layer when cold or when morning low is much cooler than day high.
-    layer: str | None = None
-    layer_icon: str | None = None
-    if tier == "cold":
-        layer, layer_icon = "Jacket", "jacket"
-    elif weather.apparent_min is not None:
-        morning_f = _to_fahrenheit(weather.apparent_min, weather.units_temperature) + child.comfort_offset_f
-        if morning_f < thresholds.cool:
-            layer, layer_icon = "Light jacket", "jacket"
-
-    rain_alert = None
-    if weather.is_raining:
-        rain_alert = "Rain expected — grab a raincoat and rain boots!"
-    elif weather.is_snowing:
-        rain_alert = "Snow expected — bundle up and wear snow boots!"
+    # Precipitation hint shown alongside the forecast (no accessories
+    # recommendation; that's a door-decision).
+    precip_alert: str | None = None
+    aft_code = weather.afternoon_weather_code
+    if aft_code in SNOW_CODES or weather.is_snowing:
+        precip_alert = "Snow expected this afternoon."
+    elif aft_code in RAIN_CODES or weather.is_raining:
+        precip_alert = "Rain expected this afternoon."
     elif weather.precip_probability_max and weather.precip_probability_max >= 50:
-        rain_alert = f"Chance of rain ({int(weather.precip_probability_max)}%) — pack a raincoat just in case."
+        precip_alert = f"Chance of precipitation ({int(weather.precip_probability_max)}%)."
 
     feels_str = _format_temp(forecast_f, display_unit)
     name = child.name
@@ -161,7 +158,7 @@ def recommend_outfit(
         "hot": f"shorts and a t-shirt day, {name}!" if child.gender == "boy" else f"a sundress day, {name}!",
         "warm": f"t-shirt and shorts for you, {name}!" if child.gender == "boy" else f"leggings and a t-shirt for you, {name}!",
         "cool": f"long sleeves and pants today, {name}!" if child.gender == "boy" else f"long sleeves and leggings today, {name}!",
-        "cold": f"warm pants and a jacket, {name} — it's chilly!",
+        "cold": f"long sleeves and warm pants, {name} — it's chilly!",
     }[tier]
 
     reason = f"{forecast_label.capitalize()} {feels_str} — {tier_phrase}"
@@ -174,10 +171,8 @@ def recommend_outfit(
         bottom=bottom,
         top_icon=top_icon,
         bottom_icon=bottom_icon,
-        layer=layer,
-        layer_icon=layer_icon,
         tier_name=tier,
-        rain_alert=rain_alert,
+        rain_alert=precip_alert,
         reason=reason,
         unavailable=False,
     )

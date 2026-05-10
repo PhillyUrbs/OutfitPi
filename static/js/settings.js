@@ -5,6 +5,16 @@
 
   const $ = (id) => document.getElementById(id);
 
+  // Map a comfort offset (°F) to a kid-friendly descriptor used in the
+  // settings slider label. Negative = runs warm, positive = runs cold.
+  function describeComfort(offset) {
+    if (offset <= -7) return 'runs hot';
+    if (offset <= -3) return 'a bit warmer than most';
+    if (offset >= 7) return 'gets cold easily';
+    if (offset >= 3) return 'a bit cooler than most';
+    return 'average';
+  }
+
   let toastTimer = null;
   function toast(msg, kind = 'ok') {
     const t = $('toast');
@@ -103,7 +113,13 @@
 
       const offset = Number(c.comfort_offset_f) || 0;
       const comfortLabel = document.createElement('label');
-      comfortLabel.textContent = `Comfort ${offset >= 0 ? '+' : ''}${offset}°F`;
+      const updateLabel = (v) => {
+        const n = Number(v) || 0;
+        comfortLabel.firstChild.nodeValue =
+          `Comfort ${n >= 0 ? '+' : ''}${n}°F (${describeComfort(n)})`;
+      };
+      // First child is a text node we mutate on input; range input is appended after.
+      comfortLabel.append(`Comfort ${offset >= 0 ? '+' : ''}${offset}°F (${describeComfort(offset)})`);
       const comfortInput = document.createElement('input');
       comfortInput.type = 'range';
       comfortInput.min = '-10';
@@ -112,6 +128,7 @@
       comfortInput.value = String(offset);
       comfortInput.dataset.i = i;
       comfortInput.dataset.k = 'comfort_offset_f';
+      comfortInput.addEventListener('input', (e) => updateLabel(e.target.value));
       comfortLabel.append(comfortInput);
 
       const rm = document.createElement('button');
