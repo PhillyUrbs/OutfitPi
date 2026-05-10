@@ -367,7 +367,7 @@ legend { font-weight: 700; padding: 0 8px; }
 .child-row > input[type="text"] { grid-area: name; }
 .child-row > select { grid-area: gender; }
 .child-row > button.danger { grid-area: remove; }
-.child-row > label { grid-area: comfort; }
+.child-row > label { grid-area: comfort; touch-action: pan-x; }
 
 /* Comfort offset slider — touch-friendly with step buttons. */
 .comfort-row {
@@ -375,6 +375,9 @@ legend { font-weight: 700; padding: 0 8px; }
   align-items: center;
   gap: 8px;
   margin-top: 6px;
+  /* Children inside (slider thumb) need horizontal pan; parent <main>
+     declares pan-y which would otherwise win. */
+  touch-action: pan-x;
 }
 .comfort-step {
   flex: 0 0 44px;
@@ -401,9 +404,9 @@ legend { font-weight: 700; padding: 0 8px; }
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
-  /* Let native horizontal drag drive the slider; drag-scroll handler
-     skips it via the input/.comfort-slider exclusion. */
-  touch-action: pan-x;
+  /* Browser owns horizontal drag for the slider; pan-y was inherited
+     from <main>. 'manipulation' disables double-tap zoom too. */
+  touch-action: manipulation;
 }
 .comfort-slider:focus { outline: none; }
 .comfort-slider::-webkit-slider-runnable-track {
