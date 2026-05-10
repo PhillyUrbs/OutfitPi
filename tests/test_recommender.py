@@ -152,3 +152,36 @@ def test_precip_alert_uses_afternoon_code(th):
     rec = recommend_outfit(w, Child(name="K", gender="boy"), th, now=NOON)
     assert rec.rain_alert is not None
     assert "snow" in rec.rain_alert.lower()
+
+
+def test_split_tiers_tshirt_with_pants_borderline(th):
+    # th: hot=75, warm=65, cool=50.
+    # BOTTOM_OFFSET +5 → warm-bottom>=70, cool-bottom>=55, else warm-pants.
+    # TOP_OFFSET   -5 → long-sleeve below 45, else T-shirt.
+    # 60F: top tier=cool (T-shirt), bottom tier=cool (Pants).
+    w = replace(_w(60), apparent_afternoon=60.0)
+    rec = recommend_outfit(w, Child(name="K", gender="boy"), th, now=NOON)
+    assert rec.top == "T-shirt"
+    assert rec.bottom == "Pants"
+    assert rec.top_tier == "cool"
+    assert rec.bottom_tier == "cool"
+    assert rec.tier_name == "cool"
+
+
+def test_split_tiers_tshirt_with_leggings_for_girl(th):
+    # 67F: top tier=warm (T-shirt), bottom tier=cool (Leggings for girl,
+    # since 67 < warm+BOTTOM_OFFSET=70).
+    w = replace(_w(67), apparent_afternoon=67.0)
+    rec = recommend_outfit(w, Child(name="L", gender="girl"), th, now=NOON)
+    assert rec.top == "T-shirt"
+    assert rec.bottom == "Leggings"
+
+
+def test_split_tiers_long_sleeve_with_warm_pants_below_band(th):
+    # 40F: below cool+TOP_OFFSET=45 → long-sleeve;
+    # below cool+BOTTOM_OFFSET=55 → warm pants.
+    w = replace(_w(40), apparent_afternoon=40.0)
+    rec = recommend_outfit(w, Child(name="K", gender="boy"), th, now=NOON)
+    assert rec.top == "Long sleeves"
+    assert rec.bottom == "Warm pants"
+    assert rec.tier_name == "cold"
