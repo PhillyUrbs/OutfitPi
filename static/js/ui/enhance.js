@@ -60,6 +60,68 @@ function hideProxy(el) {
   el.dataset.uiProxy = '1';
 }
 
+/** Re-read the proxy's current value into its themed replacement. Used
+ * after page-init code (e.g. settings.js renderAll) sets values on the
+ * native controls *after* the enhancer ran. */
+function syncReplacement(proxy) {
+  let r = proxy.nextSibling;
+  while (r && r.nodeType !== 1) r = r.nextSibling;
+  if (!r || r.dataset.uiEnhanced !== '1') return;
+  const tag = r.tagName;
+  if (tag === 'MD-FILLED-SELECT' || tag === 'MD-OUTLINED-SELECT' || tag === 'FLUENT-SELECT') {
+    // Selects: explicitly set selected on the matching option (md-filled-
+    // select doesn't always re-render when only .value is set).
+    const want = String(proxy.value);
+    r.querySelectorAll('md-select-option, fluent-option').forEach(o => {
+      const match = String(o.value) === want;
+      if (match) {
+        o.selected = true;
+        o.setAttribute('selected', '');
+      } else {
+        o.selected = false;
+        o.removeAttribute('selected');
+      }
+    });
+    try { r.value = want; } catch {}
+    return;
+  }
+  if (tag === 'MD-SWITCH' || tag === 'FLUENT-SWITCH') {
+    r.selected = !!proxy.checked;
+    if (proxy.checked) r.setAttribute('selected', '');
+    else r.removeAttribute('selected');
+    return;
+  }
+  if (tag === 'MD-RADIO' || tag === 'FLUENT-RADIO') {
+    r.checked = !!proxy.checked;
+    return;
+  }
+  // Text fields, sliders, anything with a .value property.
+  if ('value' in r) {
+    try { r.value = proxy.value; } catch {}
+  }
+}
+
+/** Walk the page and re-sync every themed replacement from its proxy.
+ * Exported so settings.js can call it after renderAll() populates fields. */
+export function syncAllReplacements(root = document) {
+  root.querySelectorAll('[data-ui-proxy="1"]').forEach(syncReplacement);
+  // Radio groups are special: the proxies are individual <input type=radio>
+  // wrapped in a <label data-ui-proxy>. Find each replacement radio-group
+  // and set the checked option from whichever proxy radio is checked.
+  root.querySelectorAll('[role="radiogroup"][data-ui-enhanced="1"]').forEach(group => {
+    // Walk back to find the original radios sharing the same name.
+    const name = group.querySelector('md-radio, fluent-radio')?.getAttribute('name');
+    if (!name) return;
+    const radios = Array.from(document.querySelectorAll(
+      `input[type="radio"][name="${CSS.escape(name)}"]`));
+    const checkedVal = (radios.find(r => r.checked) || {}).value;
+    if (!checkedVal) return;
+    group.querySelectorAll('md-radio, fluent-radio').forEach(r => {
+      r.checked = (r.getAttribute('value') === checkedVal);
+    });
+  });
+}
+
 /**
  * Replace every <button> on the page with the theme's button component.
  */

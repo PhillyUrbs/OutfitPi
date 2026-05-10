@@ -228,6 +228,11 @@
     const r = await fetch('/api/settings');
     cfg = await r.json();
     renderAll();
+    // After populating native control values from the server, push the
+    // values into any themed replacements the enhancer already inserted.
+    if (window.OutfitPiUI && typeof window.OutfitPiUI.syncAllReplacements === 'function') {
+      try { window.OutfitPiUI.syncAllReplacements(document); } catch {}
+    }
   }
 
   function collect() {

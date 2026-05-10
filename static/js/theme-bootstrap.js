@@ -2,12 +2,13 @@
 // specific JS so the framework is ready when settings.js / app.js
 // start creating components.
 import { loadTheme, ui, currentTheme } from './ui/index.js';
-import { watchAndEnhance } from './ui/enhance.js';
+import { watchAndEnhance, syncAllReplacements } from './ui/enhance.js';
 
 // Expose the adapter to non-module scripts (settings.js etc).
 window.OutfitPiUI = window.OutfitPiUI || {};
 window.OutfitPiUI.ui = ui;
 window.OutfitPiUI.currentTheme = currentTheme;
+window.OutfitPiUI.syncAllReplacements = syncAllReplacements;
 
 // Promise other scripts can await before they start creating components.
 let _readyResolve;
