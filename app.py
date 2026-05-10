@@ -566,7 +566,15 @@ def _build_config_from_payload(data: dict[str, Any]) -> Config:
 
     disp = data.get("display") or {}
     theme = str(disp.get("theme", "auto")).strip().lower()
-    cfg.display = Display(theme=theme if theme in {"auto", "light", "dark"} else "auto")
+    if theme not in {"auto", "light", "dark"}:
+        theme = "auto"
+    framework = str(disp.get("framework", "material")).strip().lower()
+    if framework not in {"native", "material", "fluent", "primer"}:
+        framework = "material"
+    variant = str(disp.get("variant", theme)).strip().lower()
+    if variant not in {"auto", "light", "dark"}:
+        variant = theme
+    cfg.display = Display(theme=theme, framework=framework, variant=variant)
 
     srv = data.get("server") or {}
     cfg.server = Server(port=int(srv.get("port", 5000)))

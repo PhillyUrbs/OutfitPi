@@ -162,3 +162,49 @@ def test_save_invalid_config_raises(tmp_path: Path):
 def test_web_remote_default_disabled():
     cfg = Config()
     assert isinstance(cfg.web_remote, WebRemote)
+
+
+def test_display_framework_default(tmp_path):
+    """A fresh config defaults to material framework + auto variant,
+    while preserving the legacy `theme` field."""
+    from outfitpi.config_manager import load_config
+    p = tmp_path / "config.yaml"
+    p.write_text(
+        "children: [{name: K, gender: boy, comfort_offset_f: 0}]\n"
+        "location: {latitude: 40.0, longitude: -75.0}\n",
+        encoding="utf-8",
+    )
+    cfg = load_config(p)
+    assert cfg.display.framework == "material"
+    assert cfg.display.variant == "auto"
+    assert cfg.display.theme == "auto"
+
+
+def test_display_legacy_theme_migrates_to_variant(tmp_path):
+    """An old config with only `theme: dark` should also yield variant=dark."""
+    from outfitpi.config_manager import load_config
+    p = tmp_path / "config.yaml"
+    p.write_text(
+        "children: [{name: K, gender: boy, comfort_offset_f: 0}]\n"
+        "location: {latitude: 40.0, longitude: -75.0}\n"
+        "display: {theme: dark}\n",
+        encoding="utf-8",
+    )
+    cfg = load_config(p)
+    assert cfg.display.theme == "dark"
+    assert cfg.display.variant == "dark"
+    assert cfg.display.framework == "material"
+
+
+def test_display_invalid_framework_falls_back(tmp_path):
+    from outfitpi.config_manager import load_config
+    p = tmp_path / "config.yaml"
+    p.write_text(
+        "children: [{name: K, gender: boy, comfort_offset_f: 0}]\n"
+        "location: {latitude: 40.0, longitude: -75.0}\n"
+        "display: {framework: bogus, variant: bogus}\n",
+        encoding="utf-8",
+    )
+    cfg = load_config(p)
+    assert cfg.display.framework == "material"
+    assert cfg.display.variant == "auto"

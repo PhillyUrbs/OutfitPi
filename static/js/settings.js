@@ -129,16 +129,31 @@
       dec.textContent = '−';
       dec.setAttribute('aria-label', 'Decrease comfort offset');
 
-      const comfortInput = document.createElement('input');
-      comfortInput.type = 'range';
-      comfortInput.min = '-10';
-      comfortInput.max = '10';
-      comfortInput.step = '1';
-      comfortInput.value = String(offset);
+      // Use the theme adapter when available so the active framework's
+      // (Material/Fluent/Primer) slider is used. Falls back to native.
+      const adapter = window.OutfitPiUI && window.OutfitPiUI.ui;
+      let comfortInput;
+      if (adapter && typeof adapter.createSlider === 'function') {
+        comfortInput = adapter.createSlider({
+          min: -10, max: 10, step: 1, value: offset,
+          ariaLabel: 'Comfort offset',
+          onInput: (v) => updateLabel(v),
+        });
+      } else {
+        comfortInput = document.createElement('input');
+        comfortInput.type = 'range';
+        comfortInput.min = '-10';
+        comfortInput.max = '10';
+        comfortInput.step = '1';
+        comfortInput.value = String(offset);
+        comfortInput.addEventListener('input', (e) => updateLabel(e.target.value));
+      }
+      // Always present so the autosave/save-payload code can find them.
       comfortInput.dataset.i = i;
       comfortInput.dataset.k = 'comfort_offset_f';
-      comfortInput.className = 'comfort-slider';
-      comfortInput.addEventListener('input', (e) => updateLabel(e.target.value));
+      if (!comfortInput.classList.contains('comfort-slider')) {
+        comfortInput.classList.add('comfort-slider');
+      }
 
       const inc = document.createElement('button');
       inc.type = 'button';
@@ -190,6 +205,9 @@
     $('channel').value = cfg.updates.channel;
     toggleDevInstall(cfg.updates.channel === 'dev');
     $('theme').value = (cfg.display && cfg.display.theme) || 'auto';
+    if ($('framework')) {
+      $('framework').value = (cfg.display && cfg.display.framework) || 'material';
+    }
   }
 
   async function load() {
@@ -215,7 +233,11 @@
     out.updates.auto_check = $('auto-check').checked;
     out.updates.auto_install = $('auto-install').checked;
     out.updates.channel = $('channel').value;
-    out.display = { theme: $('theme').value };
+    out.display = {
+      theme: $('theme').value,
+      framework: $('framework') ? $('framework').value : (cfg.display && cfg.display.framework) || 'material',
+      variant: $('theme').value,
+    };
     return out;
   }
 

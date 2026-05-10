@@ -16,6 +16,9 @@ VALID_GENDERS = {"boy", "girl"}
 VALID_UNITS = {"fahrenheit", "celsius"}
 VALID_TELEMETRY = {"none", "errors", "full"}
 VALID_THEMES = {"auto", "light", "dark"}
+# UI framework picker (controls component library used by every page).
+VALID_FRAMEWORKS = {"native", "material", "fluent", "primer"}
+VALID_VARIANTS = {"auto", "light", "dark"}
 VALID_CHANNELS = {"stable", "beta", "dev"}
 # Map legacy channel names to current ones for backward compatibility.
 _CHANNEL_ALIASES = {"releases": "stable", "main": "dev"}
@@ -76,7 +79,9 @@ class WebRemote:
 
 @dataclass
 class Display:
-    theme: str = "auto"  # "auto" | "light" | "dark"
+    theme: str = "auto"  # "auto" | "light" | "dark" — legacy; mirrors variant.
+    framework: str = "material"  # "native" | "material" | "fluent" | "primer"
+    variant: str = "auto"        # "auto" | "light" | "dark"
 
 
 @dataclass
@@ -167,7 +172,17 @@ def _from_dict(data: dict[str, Any]) -> Config:
 
     disp = data.get("display") or {}
     theme = str(disp.get("theme", "auto")).strip().lower()
-    cfg.display = Display(theme=theme if theme in VALID_THEMES else "auto")
+    if theme not in VALID_THEMES:
+        theme = "auto"
+    framework = str(disp.get("framework", "material")).strip().lower()
+    if framework not in VALID_FRAMEWORKS:
+        framework = "material"
+    # Variant defaults to the legacy theme value so existing installs keep
+    # the same look until the user explicitly picks one.
+    variant = str(disp.get("variant", theme)).strip().lower()
+    if variant not in VALID_VARIANTS:
+        variant = theme
+    cfg.display = Display(theme=theme, framework=framework, variant=variant)
 
     srv = data.get("server") or {}
     cfg.server = Server(port=int(srv.get("port", 5000)))
@@ -199,6 +214,9 @@ def _apply_channel_policy(cfg: Config) -> None:
     cfg.updates.auto_install = True
     if cfg.updates.channel in {"dev", "beta"}:
         cfg.telemetry.level = "full"
+    # Keep legacy `display.theme` in sync with the new `variant` so older
+    # clients reading the old key get the same value.
+    cfg.display.theme = cfg.display.variant
 
 
 def validate_config(cfg: Config) -> None:
@@ -228,6 +246,10 @@ def validate_config(cfg: Config) -> None:
         raise ConfigError(f"Invalid update channel: {cfg.updates.channel}")
     if cfg.display.theme not in VALID_THEMES:
         raise ConfigError(f"Invalid theme: {cfg.display.theme}")
+    if cfg.display.framework not in VALID_FRAMEWORKS:
+        raise ConfigError(f"Invalid framework: {cfg.display.framework}")
+    if cfg.display.variant not in VALID_VARIANTS:
+        raise ConfigError(f"Invalid variant: {cfg.display.variant}")
     if cfg.refresh_interval_minutes < 1:
         raise ConfigError("refresh_interval_minutes must be >= 1")
 

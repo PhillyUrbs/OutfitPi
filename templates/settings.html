@@ -8,6 +8,7 @@
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <script src="{{ url_for('static', filename='js/theme.js') }}" defer></script>
+  <script type="module" src="{{ url_for('static', filename='js/theme-bootstrap.js') }}"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/simple-keyboard/index.css') }}">
 </head>
 <body class="settings-page">
@@ -127,6 +128,15 @@
           <option value="dark">Dark</option>
         </select>
       </label>
+      <label>UI framework
+        <select id="framework">
+          <option value="native">Native (built-in)</option>
+          <option value="material" disabled>Material (coming soon)</option>
+          <option value="fluent" disabled>Fluent (coming soon)</option>
+          <option value="primer" disabled>Primer (coming soon)</option>
+        </select>
+      </label>
+      <p class="hint">Switching frameworks reloads the page. Custom themes can be added by dropping a JS module into <code>static/js/ui/themes/</code>.</p>
     </fieldset>
 
     <fieldset>
