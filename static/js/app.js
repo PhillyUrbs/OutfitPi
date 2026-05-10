@@ -214,6 +214,48 @@
     } catch {}
   }
 
+  // Track server identity so we can hot-reload after a restart (which
+  // also invalidates any in-page CSRF token) or after a dev-channel
+  // rebuild that doesn't bump __version__.
+  let _serverSha = null;
+  let _serverStarted = null;
+  async function checkServerIdentity() {
+    try {
+      const r = await fetch('/api/health', { cache: 'no-store' });
+      if (!r.ok) return;
+      const j = await r.json();
+      if (_serverSha === null) {
+        _serverSha = j.sha || '';
+        _serverStarted = j.started_at || 0;
+        // First poll: render dev-build badge in the topbar if a SHA is
+        // present (the API only returns one when running from a git
+        // checkout, which on prod releases is uncommon).
+        if (j.sha) {
+          const brand = document.querySelector('.brand');
+          if (brand && !document.getElementById('dev-build-badge')) {
+            const tag = document.createElement('span');
+            tag.id = 'dev-build-badge';
+            tag.className = 'dev-build-badge';
+            tag.textContent = `${j.version}+${j.sha}`;
+            tag.title = `Build ${j.version} (${j.sha})`;
+            brand.after(tag);
+          }
+        }
+        return;
+      }
+      const shaChanged = (j.sha || '') !== _serverSha;
+      const restarted = (j.started_at || 0) !== _serverStarted;
+      if (shaChanged || restarted) {
+        window.location.reload();
+      }
+    } catch {}
+  }
+  // First call after page load (lets the dashboard render once before
+  // we add the badge), then poll every 30s — same cadence as the
+  // settings page's restart-detect.
+  setTimeout(checkServerIdentity, 1500);
+  setInterval(checkServerIdentity, 30 * 1000);
+
   setInterval(checkUpdate, 5 * 60 * 1000);
 
   async function initDevToggle() {

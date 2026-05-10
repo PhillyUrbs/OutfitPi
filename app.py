@@ -81,6 +81,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger("outfitpi")
 
+# Process-start timestamp; surfaced via /api/health so dashboards can
+# reload themselves after a service restart (also drops any stale CSRF
+# token they were holding from before the restart).
+_STARTED_AT = int(time.time())
+
 
 def _load_or_create_secret_key(cfg_path: Path) -> str:
     """Return a stable Flask secret key.
@@ -273,7 +278,9 @@ def create_app(config_path: Path | None = None) -> Flask:
         # Tiny endpoint used by the front-end to detect when the server is
         # back online after an update or remote-toggle restart. Includes
         # the local git HEAD short SHA so the UI can detect dev-channel
-        # rebuilds that don't bump __version__.
+        # rebuilds that don't bump __version__, plus a server start
+        # timestamp so dashboards reload after any restart (which also
+        # invalidates whatever in-page CSRF token they were holding).
         sha = ""
         try:
             result = subprocess.run(
@@ -288,7 +295,12 @@ def create_app(config_path: Path | None = None) -> Flask:
         except (FileNotFoundError, subprocess.SubprocessError):
             # No git or repo unavailable; ship without the SHA.
             pass
-        return jsonify({"ok": True, "version": __version__, "sha": sha})
+        return jsonify({
+            "ok": True,
+            "version": __version__,
+            "sha": sha,
+            "started_at": _STARTED_AT,
+        })
 
     @app.get("/api/_test/raise")
     def api_test_raise():

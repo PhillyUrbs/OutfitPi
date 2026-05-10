@@ -154,6 +154,20 @@ body.night .topbar {
 .brand { font-size: 1.4rem; margin: 0; font-weight: 700; }
 .version { opacity: 0.8; font-size: 0.9rem; }
 
+.dev-build-badge {
+  margin-left: 10px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  background: rgba(255, 255, 255, 0.2);
+  color: inherit;
+  border-radius: 999px;
+  vertical-align: middle;
+  letter-spacing: 0.3px;
+}
+body.night .dev-build-badge { background: rgba(255, 255, 255, 0.15); }
+
 .icon-btn {
   display: inline-flex;
   align-items: center;
