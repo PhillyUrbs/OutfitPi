@@ -53,6 +53,14 @@ function copyAttrs(src, dst) {
       dst.setAttribute(a.name, a.value);
     }
   }
+  // Strip id from the proxy after copying so $('channel') returns the
+  // themed replacement and not the hidden form-internal select that
+  // existed before enhancement. Other code that needs the proxy can
+  // still find it via [data-ui-original-id].
+  if (src.id) {
+    src.dataset.uiOriginalId = src.id;
+    src.removeAttribute('id');
+  }
 }
 
 function hideProxy(el) {
