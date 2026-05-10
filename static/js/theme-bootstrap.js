@@ -8,6 +8,10 @@ window.OutfitPiUI = window.OutfitPiUI || {};
 window.OutfitPiUI.ui = ui;
 window.OutfitPiUI.currentTheme = currentTheme;
 
+// Promise other scripts can await before they start creating components.
+let _readyResolve;
+window.OutfitPiUI.ready = new Promise((res) => { _readyResolve = res; });
+
 const KEY_FRAMEWORK = 'outfitpi_framework';
 const KEY_VARIANT   = 'outfitpi_variant';
 
@@ -40,4 +44,9 @@ window.OutfitPiUI = {
   },
 };
 
-bootFromCache().then(syncFromConfig);
+// Boot order: load from cache (instant), resolve `ready` so consumers
+// can render, then sync from server in the background. Server-driven
+// theme changes update localStorage but don't re-render — too disruptive.
+bootFromCache()
+  .then(() => _readyResolve())
+  .then(syncFromConfig);

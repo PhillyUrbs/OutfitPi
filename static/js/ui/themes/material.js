@@ -67,7 +67,15 @@ function ensureThemeStyles() {
       --md-sys-color-on-secondary-container: #f0f4ff;
     }
     /* Make sliders/buttons fill their grid cell. */
-    body[data-ui-framework="material"] md-slider { width: 100%; }
+    body[data-ui-framework="material"] md-slider {
+      width: 100%;
+      /* The host page sets touch-action: pan-y on <main> for the drag-
+         scroll fallback; without overriding here, Chromium classifies
+         the first touch as a vertical scroll and the slider never sees
+         pointermove. 'none' lets md-slider run its own touch handlers. */
+      touch-action: none;
+    }
+    body[data-ui-framework="material"] .comfort-row { touch-action: none; }
     body[data-ui-framework="material"] md-filled-button,
     body[data-ui-framework="material"] md-outlined-button,
     body[data-ui-framework="material"] md-text-button { min-height: 44px; }

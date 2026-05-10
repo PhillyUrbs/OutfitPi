@@ -211,6 +211,11 @@
   }
 
   async function load() {
+    // Wait for the active UI framework to finish loading so renderChildren
+    // uses the right createSlider implementation on the first paint.
+    if (window.OutfitPiUI && window.OutfitPiUI.ready) {
+      try { await window.OutfitPiUI.ready; } catch {}
+    }
     const r = await fetch('/api/settings');
     cfg = await r.json();
     renderAll();
