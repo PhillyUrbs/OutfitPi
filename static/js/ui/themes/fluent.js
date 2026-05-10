@@ -2,7 +2,7 @@
 // v3 is the modern Web Components version; ships Fluent 2 design tokens.
 import nativeTheme from './native.js';
 
-const FLUENT_VERSION = '3.0.0-beta.86';
+const FLUENT_VERSION = '2.6.1';
 const ESM_URL = `https://esm.sh/@fluentui/web-components@${FLUENT_VERSION}?bundle`;
 
 let _loaded = false;
@@ -13,14 +13,14 @@ async function ensureFluentLoaded() {
   if (_loadPromise) return _loadPromise;
   _loadPromise = (async () => {
     const mod = await import(ESM_URL);
-    const provide = mod.provideFluentDesignSystem || mod.default?.provideFluentDesignSystem;
+    const provide = mod.provideFluentDesignSystem;
     if (typeof provide !== 'function') {
       throw new Error('Fluent: provideFluentDesignSystem not exported');
     }
     const ds = provide();
     const wanted = [
       'fluentButton', 'fluentSlider', 'fluentSwitch',
-      'fluentTextInput', 'fluentSelect', 'fluentOption',
+      'fluentTextField', 'fluentSelect', 'fluentOption',
       'fluentRadioGroup', 'fluentRadio',
     ];
     const factories = wanted
@@ -138,7 +138,7 @@ const fluent = {
   createInput({ type = 'text', value = '', placeholder = '', inputmode,
                 onInput, onChange, ariaLabel } = {}) {
     ensureThemeStyles();
-    const f = document.createElement('fluent-text-input');
+    const f = document.createElement('fluent-text-field');
     f.setAttribute('type', type);
     f.value = String(value);
     if (placeholder) f.setAttribute('placeholder', placeholder);
