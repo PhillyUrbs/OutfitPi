@@ -13,7 +13,7 @@
 //  - Each replaced node copies id, name, class list, dataset, ARIA, and
 //    rewires existing event listeners by re-dispatching click/change.
 
-import { ui, currentTheme } from './ui/index.js';
+import { ui, currentTheme } from './index.js';
 
 const SKIP_BUTTON_CLASSES = ['icon-btn', 'comfort-step', 'keyboard-hide'];
 const SKIP_PARENTS = ['.keyboard-container', '.dev-toggle', '.restart-overlay'];
