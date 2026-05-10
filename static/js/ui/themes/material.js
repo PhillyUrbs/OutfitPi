@@ -67,8 +67,17 @@ function ensureThemeStyles() {
          the first touch as a vertical scroll and the slider never sees
          pointermove. 'none' lets md-slider run its own touch handlers. */
       touch-action: none;
+      /* Make sure the gradient track + native CSS thumb from
+         .comfort-slider don't bleed onto the md-slider host. */
+      background: transparent !important;
+      height: auto !important;
     }
     body[data-ui-framework="material"] .comfort-row { touch-action: none; }
+    /* Material slider has its own affordances; hide the +/- step buttons
+       we added for the native slider. */
+    body[data-ui-framework="material"] .comfort-row .comfort-step {
+      display: none;
+    }
     body[data-ui-framework="material"] md-filled-button,
     body[data-ui-framework="material"] md-outlined-button,
     body[data-ui-framework="material"] md-text-button { min-height: 44px; }
