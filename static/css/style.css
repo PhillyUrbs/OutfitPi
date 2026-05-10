@@ -318,7 +318,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .dev-install {
   margin-top: 12px;
   padding: 10px 12px;
-  background: rgba(255,159,67,0.12);
+  /* Use the active accent (--orange is already redirected per framework
+   * + colorway) so the panel matches whatever palette is in effect. */
+  background: color-mix(in srgb, var(--orange) 12%, transparent);
   border: 1px dashed var(--orange);
   border-radius: var(--radius);
   display: flex;
@@ -357,7 +359,9 @@ body.night .ref-list { background: #1f2a44; border-color: #344066; }
   justify-content: center;
 }
 .ref-item + .ref-item { margin-top: 2px; }
-.ref-item:active { background: rgba(255,159,67,0.18); }
+.ref-item:active {
+  background: color-mix(in srgb, var(--orange) 18%, transparent);
+}
 .ref-item.selected { background: var(--orange); color: #fff; }
 .ref-primary { font-weight: 600; font-size: 0.95rem; }
 .ref-secondary { font-size: 0.78rem; opacity: 0.75; margin-top: 2px; }
