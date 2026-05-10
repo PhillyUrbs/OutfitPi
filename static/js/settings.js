@@ -154,7 +154,6 @@
         // (the last one observed) and write that.
         const commit = () => {
           const v = parseFloat(comfortInput.value);
-          console.log('[comfort] commit i=' + i + ' v=' + v + ' tag=' + comfortInput.tagName);
           if (Number.isNaN(v)) return;
           writeChildOffset(i, v);
           autosave();
@@ -288,7 +287,22 @@
 
   function collect() {
     const out = JSON.parse(JSON.stringify(cfg));
-    out.units.temperature = document.querySelector('input[name="units"]:checked').value;
+    // Helper: read a radio group's selected value, falling back to the
+    // existing cfg value when the enhancer's md-radio-group race
+    // temporarily un-checks every proxy radio.
+    const radioVal = (name, fallback) => {
+      const checked = document.querySelector(`input[name="${name}"]:checked`);
+      if (checked) return checked.value;
+      // Try the themed replacement directly.
+      const group = document.querySelector(
+        `[role="radiogroup"][data-ui-enhanced="1"]`);
+      if (group && group.value) {
+        const r = group.querySelector(`md-radio[name="${name}"], fluent-radio[name="${name}"]`);
+        if (r) return group.value;
+      }
+      return fallback;
+    };
+    out.units.temperature = radioVal('units', cfg.units.temperature);
     out.thresholds.hot = parseFloat($('th-hot').value);
     out.thresholds.warm = parseFloat($('th-warm').value);
     out.thresholds.cool = parseFloat($('th-cool').value);
@@ -297,7 +311,7 @@
     out.location.auto = $('loc-auto').checked;
     out.location.consent_given = out.location.auto;
     out.web_remote.enabled = $('web-remote').checked;
-    out.telemetry.level = document.querySelector('input[name="telemetry"]:checked').value;
+    out.telemetry.level = radioVal('telemetry', cfg.telemetry.level);
     out.refresh_interval_minutes = parseInt($('refresh-min').value, 10);
     out.language = $('language').value;
     out.updates.auto_check = $('auto-check').checked;
@@ -338,7 +352,6 @@
   let saveQueued = false;
 
   async function doSave() {
-    console.log('[doSave] enter inFlight=' + saveInFlight);
     if (saveInFlight) { saveQueued = true; return; }
     saveInFlight = true;
     const ok = $('settings-ok'), err = $('settings-error');
@@ -346,10 +359,11 @@
     let payload;
     try {
       payload = collect();
-      console.log('[doSave] payload children=' + JSON.stringify(payload.children.map(c=>c.comfort_offset_f)));
     } catch (e) {
-      console.log('[doSave] collect threw: ' + e.message);
       saveInFlight = false;
+      err.textContent = 'Could not read form: ' + e.message;
+      err.hidden = false;
+      reportClientError('settings-collect', e.message);
       return;
     }
     const wasEnabled = cfg.web_remote.enabled;

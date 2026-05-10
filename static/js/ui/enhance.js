@@ -130,6 +130,11 @@ export function syncAllReplacements(root = document) {
       `input[type="radio"][name="${CSS.escape(name)}"]`));
     const checkedVal = (radios.find(r => r.checked) || {}).value;
     if (!checkedVal) return;
+    // Set group value first so the group's own onChange (which loops
+    // back to write proxy.checked) sees the matching value and doesn't
+    // unset the proxies. Then individually mark each option, in case
+    // the group hasn't propagated value→checked yet.
+    try { group.value = checkedVal; } catch {}
     group.querySelectorAll('md-radio, fluent-radio').forEach(r => {
       r.checked = (r.getAttribute('value') === checkedVal);
     });

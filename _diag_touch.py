@@ -79,6 +79,13 @@ with sync_playwright() as p:
         return { text: e ? e.textContent : null, hidden: e ? e.hidden : null };
     }""")
     print('ERR:', err, flush=True)
+    radios = page.evaluate("""() => ({
+        unitsAll: Array.from(document.querySelectorAll('input[name="units"]')).map(r => ({val:r.value, checked:r.checked, disabled:r.disabled, hidden:r.offsetParent===null})),
+        unitsChecked: !!document.querySelector('input[name="units"]:checked'),
+        telAll: Array.from(document.querySelectorAll('input[name="telemetry"]')).map(r => ({val:r.value, checked:r.checked})),
+        telChecked: !!document.querySelector('input[name="telemetry"]:checked'),
+    })""")
+    print('RADIOS:', radios, flush=True)
     saved = page.evaluate("""async () => {
         const r = await fetch('/api/settings');
         const j = await r.json();
