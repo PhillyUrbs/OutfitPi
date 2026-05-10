@@ -256,7 +256,13 @@
     if (i === undefined) return;
     const child = cfg.children[parseInt(i, 10)];
     if (!child) return;
-    if (k === 'comfort_offset_f') { child[k] = parseFloat(e.target.value); renderChildren(); }
+    if (k === 'comfort_offset_f') {
+      // Just update the in-memory value; the label is updated by the
+      // slider's own onInput handler. Avoid re-rendering the list mid-
+      // drag — that would destroy the slider element the user is
+      // currently touching.
+      child[k] = parseFloat(e.target.value);
+    }
     else child[k] = e.target.value;
   });
   $('children-list').addEventListener('click', (e) => {

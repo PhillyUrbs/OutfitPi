@@ -88,6 +88,13 @@ const material = {
   name: 'Material',
   variants: ['auto', 'light', 'dark'],
 
+  // Awaited by the registry before any factory is called, so the very
+  // first render uses defined custom elements.
+  async init() {
+    ensureThemeStyles();
+    await ensureMaterialLoaded();
+  },
+
   applyVariant(variant) {
     document.body.dataset.uiVariant = variant || 'auto';
     ensureThemeStyles();

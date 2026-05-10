@@ -60,6 +60,14 @@ export async function loadTheme(id, variant = 'auto') {
       // ESM dynamic import; kiosk should have all assets vendored locally.
       await import(`/static/${theme.vendor}`);
     }
+    // If the theme exposes an init() (e.g. to await dynamic CDN imports
+    // before any factory is called), block here so the first render uses
+    // a fully-defined theme.
+    if (typeof theme.init === 'function') {
+      try { await theme.init(); } catch (e) {
+        console.warn(`Theme '${id}' init() failed`, e);
+      }
+    }
     // Tear down the previous theme.
     if (typeof ui.destroy === 'function') {
       try { ui.destroy(); } catch {}
