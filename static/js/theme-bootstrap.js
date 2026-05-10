@@ -2,6 +2,7 @@
 // specific JS so the framework is ready when settings.js / app.js
 // start creating components.
 import { loadTheme, ui, currentTheme } from './ui/index.js';
+import { watchAndEnhance } from './ui/enhance.js';
 
 // Expose the adapter to non-module scripts (settings.js etc).
 window.OutfitPiUI = window.OutfitPiUI || {};
@@ -48,5 +49,14 @@ window.OutfitPiUI = {
 // can render, then sync from server in the background. Server-driven
 // theme changes update localStorage but don't re-render — too disruptive.
 bootFromCache()
-  .then(() => _readyResolve())
+  .then(() => {
+    // Walk the page once the active theme is loaded, replacing native
+    // controls with the theme's component equivalents.
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => watchAndEnhance());
+    } else {
+      watchAndEnhance();
+    }
+    _readyResolve();
+  })
   .then(syncFromConfig);
