@@ -12,7 +12,22 @@ async function ensureFluentLoaded() {
   if (_loaded) return;
   if (_loadPromise) return _loadPromise;
   _loadPromise = (async () => {
-    await import(ESM_URL);
+    const mod = await import(ESM_URL);
+    const provide = mod.provideFluentDesignSystem || mod.default?.provideFluentDesignSystem;
+    if (typeof provide !== 'function') {
+      throw new Error('Fluent: provideFluentDesignSystem not exported');
+    }
+    const ds = provide();
+    const wanted = [
+      'fluentButton', 'fluentSlider', 'fluentSwitch',
+      'fluentTextInput', 'fluentSelect', 'fluentOption',
+      'fluentRadioGroup', 'fluentRadio',
+    ];
+    const factories = wanted
+      .map((k) => mod[k])
+      .filter((f) => typeof f === 'function')
+      .map((f) => f());
+    if (factories.length) ds.register(...factories);
     _loaded = true;
   })();
   return _loadPromise;

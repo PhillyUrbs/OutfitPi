@@ -31,12 +31,15 @@ body[data-ui-colorway]:not([data-ui-colorway="default"]) {
  * hardcode each framework's baseline here. */
 body[data-ui-framework="material"][data-ui-colorway="default"] {
   --orange: #6750a4; /* Material 3 baseline primary */
+  --ui-accent: #6750a4;
 }
 body[data-ui-framework="fluent"][data-ui-colorway="default"] {
   --orange: #0078d4; /* Fluent brand */
+  --ui-accent: #0078d4;
 }
 body[data-ui-framework="primer"][data-ui-colorway="default"] {
   --orange: #1f883d; /* Primer accent green */
+  --ui-accent: #1f883d;
 }
 
 * { box-sizing: border-box; }
@@ -105,11 +108,17 @@ body.setup textarea {
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  background: var(--sky);
-  color: #fff;
+  /* Brand surface: picks up active colorway accent when set, falls
+   * back to kid sky-blue. Theme-aware via --ui-accent which each
+   * framework remaps to its own primary in default colorway. */
+  background: var(--ui-accent, var(--sky));
+  color: var(--ui-accent-on, #fff);
   height: var(--topbar-h);
 }
-body.night .topbar { background: #1a2a52; }
+body.night .topbar {
+  background: color-mix(in srgb, var(--ui-accent, #1a2a52) 70%, #0b1230);
+  color: var(--ui-accent-on, #fff);
+}
 
 .brand { font-size: 1.4rem; margin: 0; font-weight: 700; }
 .version { opacity: 0.8; font-size: 0.9rem; }
