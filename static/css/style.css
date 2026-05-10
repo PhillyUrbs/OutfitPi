@@ -63,6 +63,15 @@ body[data-ui-framework="primer"] .night {
   --grass: color-mix(in srgb, var(--ui-accent, #888) 22%, #1a1a1f);
   --sun:   color-mix(in srgb, var(--ui-accent, #888) 18%, #14141a);
 }
+/* Alert banners (rain / stale data) become accent-tinted under
+ * non-native frameworks so they fit the design system instead of
+ * shouting kid-orange against a Material/Fluent/Primer surface. */
+body[data-ui-framework="material"],
+body[data-ui-framework="fluent"],
+body[data-ui-framework="primer"] {
+  --rain:  color-mix(in srgb, var(--ui-accent, #888) 70%, #ffffff);
+  --stale: color-mix(in srgb, var(--ui-accent, #888) 35%, #ffffff);
+}
 
 * { box-sizing: border-box; }
 
