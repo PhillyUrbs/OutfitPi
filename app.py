@@ -558,13 +558,11 @@ def create_app(config_path: Path | None = None) -> Flask:
             loc = get_location(cfg, force_refresh=True)
         except LocationError as exc:
             _capture_exc(exc, route="/api/location/redetect")
-            # Don't echo the raw exception detail to the client — that
-            # could expose internal endpoints / stack details. Match the
-            # location error envelope used by /api/dashboard.
-            return jsonify({
-                "error": "location_error",
-                "detail": _safe_error(exc),
-            }), 502
+            # Generic envelope only — the full exception is captured in
+            # telemetry, so don't include any string derived from it in
+            # the response. CodeQL flagged the previous _safe_error()
+            # detail as potential stack-trace exposure.
+            return jsonify({"error": "location_error"}), 502
         return jsonify(
             {
                 "latitude": loc.latitude,

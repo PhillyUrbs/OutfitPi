@@ -635,7 +635,7 @@
         headers: { 'X-CSRFToken': csrfToken },
       });
       const j = await r.json();
-      if (!r.ok) throw new Error(j.error || 'Re-detect failed');
+      if (!r.ok) throw new Error('Could not detect location');
       $('loc-lat').value = j.latitude;
       $('loc-lon').value = j.longitude;
       // Push freshly-detected coords into the in-memory config and
