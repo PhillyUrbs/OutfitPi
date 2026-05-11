@@ -128,6 +128,25 @@ body.night fluent-text-field {
   --neutralForegroundHover: #ffffff;
   --neutralForegroundActive: #ffffff;
 }
+/* Fluent text field's input control has a near-white default
+ * background. Override the fill + control color tokens AND target the
+ * shadow part so the actual <input> inside renders dark. */
+body.night fluent-text-field {
+  --neutralFillInputRest: #2b2930;
+  --neutralFillInputHover: #36343b;
+  --neutralFillInputActive: #211f26;
+  --neutralFillInputFocus: #2b2930;
+  --neutralStrokeInputRest: rgba(255,255,255,0.3);
+  background: transparent;
+}
+body.night fluent-text-field::part(root) {
+  background: #2b2930;
+  border-color: rgba(255,255,255,0.3);
+}
+body.night fluent-text-field::part(control) {
+  color: #ffffff;
+  background: transparent;
+}
 body.night fluent-radio::part(label),
 body.night fluent-switch::part(label),
 body.night fluent-option::part(content),
