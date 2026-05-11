@@ -33,7 +33,7 @@ jobs:
           pip install -e .[dev] mkdocs-material mkdocs-macros-plugin mike playwright pillow
       - name: Cache Playwright browsers
         if: github.event_name == 'push' && (github.ref == 'refs/heads/beta' || github.ref == 'refs/heads/main')
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-chromium
@@ -71,7 +71,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .[dev] mkdocs-material mkdocs-macros-plugin mike playwright pillow
       - name: Cache Playwright browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-chromium
