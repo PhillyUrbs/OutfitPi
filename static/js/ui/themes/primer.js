@@ -89,16 +89,52 @@ function attachPrimer() {
       background: #0d1117;
       border-color: #30363d;
     }
-    /* Comfort slider stays the touch-friendly hand-built one — Primer
-       doesn't ship a slider component. Override its accent. */
+    /* Comfort slider: Primer doesn't ship a slider component, so we
+     * style the native <input type=range> in GitHub colors and hide
+     * the touch-fallback +/- buttons (the slider itself is large
+     * enough to drag on a 7" touchscreen). */
+    body[data-ui-framework="primer"] .comfort-row .comfort-step {
+      display: none;
+    }
+    body[data-ui-framework="primer"] .comfort-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #d0d7de;
+      border-radius: 3px;
+      outline: none;
+      touch-action: none;
+    }
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .comfort-slider,
+    body[data-ui-framework="primer"].night .comfort-slider {
+      background: #30363d;
+    }
     body[data-ui-framework="primer"] .comfort-slider::-webkit-slider-thumb {
-      background: var(--ui-accent, #1f883d) !important;
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--ui-accent, #1f883d);
+      border: 2px solid #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      cursor: pointer;
     }
     body[data-ui-framework="primer"] .comfort-slider::-moz-range-thumb {
-      background: var(--ui-accent, #1f883d) !important;
-    }
-    body[data-ui-framework="primer"] .comfort-step {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
       background: var(--ui-accent, #1f883d);
+      border: 2px solid #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      cursor: pointer;
+    }
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .comfort-slider::-webkit-slider-thumb,
+    body[data-ui-framework="primer"].night .comfort-slider::-webkit-slider-thumb,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .comfort-slider::-moz-range-thumb,
+    body[data-ui-framework="primer"].night .comfort-slider::-moz-range-thumb {
+      border-color: #0d1117;
     }
   `;
   document.head.appendChild(style);
