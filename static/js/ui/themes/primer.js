@@ -294,6 +294,80 @@ function attachPrimer() {
     body[data-ui-framework="primer"].night .comfort-slider::-moz-range-thumb {
       border-color: #0d1117;
     }
+    /* Force-install panel: kid theme uses a green dashed accent box
+     * with oversized typography; Primer renders it as a plain Box
+     * with normal sizes that fits between the surrounding fieldsets. */
+    body[data-ui-framework="primer"] .dev-install {
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 8px;
+    }
+    body[data-ui-framework="primer"].night .dev-install,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .dev-install {
+      background: #161b22;
+      border-color: #30363d;
+    }
+    body[data-ui-framework="primer"] .ref-list {
+      max-height: 220px;
+      background: #ffffff;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      padding: 0;
+    }
+    body[data-ui-framework="primer"].night .ref-list,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .ref-list {
+      background: #0d1117;
+      border-color: #30363d;
+    }
+    body[data-ui-framework="primer"] .ref-group {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #656d76;
+      padding: 8px 12px 4px;
+      opacity: 1;
+    }
+    body[data-ui-framework="primer"].night .ref-group,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .ref-group {
+      color: #7d8590;
+    }
+    body[data-ui-framework="primer"] .ref-item {
+      padding: 6px 12px;
+      border-radius: 0;
+      min-height: 0;
+    }
+    body[data-ui-framework="primer"] .ref-item:hover {
+      background: #f6f8fa;
+    }
+    body[data-ui-framework="primer"].night .ref-item:hover,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .ref-item:hover {
+      background: #161b22;
+    }
+    body[data-ui-framework="primer"] .ref-item.selected {
+      background: #0969da !important;
+      color: #ffffff !important;
+    }
+    body[data-ui-framework="primer"].night .ref-item.selected,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .ref-item.selected {
+      background: #1f6feb !important;
+    }
+    body[data-ui-framework="primer"] .ref-primary {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    body[data-ui-framework="primer"] .ref-secondary {
+      font-size: 12px;
+      color: #656d76;
+    }
+    body[data-ui-framework="primer"].night .ref-secondary,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .ref-secondary {
+      color: #7d8590;
+    }
+    body[data-ui-framework="primer"] .ref-item.selected .ref-secondary {
+      color: rgba(255,255,255,0.85);
+    }
   `;
   document.head.appendChild(style);
   _stylesAttached = true;
