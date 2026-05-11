@@ -5,7 +5,9 @@
 import nativeTheme from './native.js';
 
 const PRIMER_VERSION = '21.1.1';
-const PRIMER_CSS = `https://cdnjs.cloudflare.com/ajax/libs/Primer/${PRIMER_VERSION}/primer.min.css`;
+// Vendored locally to avoid kiosk dependency on cdnjs (and the
+// occasional slow load that hung Playwright reload tests).
+const PRIMER_CSS = `/static/vendor/primer/primer.min.css`;
 
 let _stylesAttached = false;
 
