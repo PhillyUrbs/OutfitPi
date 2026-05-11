@@ -174,7 +174,14 @@ def create_app(config_path: Path | None = None) -> Flask:
 
     @app.context_processor
     def _inject_globals() -> dict[str, Any]:
-        return {"csrf_token": _csrf_meta, "app_version": __version__}
+        # asset_v changes on every process start so static asset URLs
+        # bust the browser cache after a service restart (otherwise
+        # kiosk Chromium can sit on stale CSS/JS for hours).
+        return {
+            "csrf_token": _csrf_meta,
+            "app_version": __version__,
+            "asset_v": str(_STARTED_AT),
+        }
 
     @app.before_request
     def _setup_redirect():
