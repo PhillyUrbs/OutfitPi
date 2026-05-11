@@ -192,17 +192,27 @@ function attachPrimer() {
     body[data-ui-framework="primer"][data-ui-variant="dark"] input[type="radio"] {
       accent-color: #2f81f7;
     }
-    /* Toggles built from labelled checkboxes (.big-toggle) */
+    /* Toggles built from labelled checkboxes (.big-toggle): kid theme
+     * makes these full-width blue cards with 24px checkboxes; Primer
+     * wants a tight inline label with a normal-size checkbox. */
     body[data-ui-framework="primer"] .big-toggle {
-      background: #f6f8fa;
-      border: 1px solid #d0d7de;
-      border-radius: 6px;
-      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+      background: transparent !important;
+      border: none !important;
+      border-radius: 0;
+      margin: 6px 0;
+      min-height: 0;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: normal;
     }
-    body[data-ui-framework="primer"].night .big-toggle,
-    body[data-ui-framework="primer"][data-ui-variant="dark"] .big-toggle {
-      background: #161b22;
-      border-color: #30363d;
+    body[data-ui-framework="primer"] .big-toggle input {
+      width: 14px !important;
+      height: 14px !important;
+      margin: 0;
     }
     /* Section headings, hints, labels */
     body[data-ui-framework="primer"] h2,
@@ -238,6 +248,25 @@ function attachPrimer() {
     body[data-ui-framework="primer"].night .comfort-slider {
       background: #30363d;
     }
+    /* Override the kid-theme blue/red gradient on the actual track
+     * pseudo-elements (the rule on .comfort-slider itself doesn't
+     * reach ::-webkit-slider-runnable-track). */
+    body[data-ui-framework="primer"] .comfort-slider::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 3px;
+      background: #d0d7de;
+    }
+    body[data-ui-framework="primer"] .comfort-slider::-moz-range-track {
+      height: 6px;
+      border-radius: 3px;
+      background: #d0d7de;
+    }
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .comfort-slider::-webkit-slider-runnable-track,
+    body[data-ui-framework="primer"].night .comfort-slider::-webkit-slider-runnable-track,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .comfort-slider::-moz-range-track,
+    body[data-ui-framework="primer"].night .comfort-slider::-moz-range-track {
+      background: #30363d;
+    }
     body[data-ui-framework="primer"] .comfort-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
@@ -248,6 +277,7 @@ function attachPrimer() {
       border: 2px solid #ffffff;
       box-shadow: 0 1px 3px rgba(0,0,0,0.3);
       cursor: pointer;
+      margin-top: -7px;
     }
     body[data-ui-framework="primer"] .comfort-slider::-moz-range-thumb {
       width: 20px;
