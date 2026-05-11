@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import secrets
@@ -110,10 +111,8 @@ def _load_or_create_secret_key(cfg_path: Path) -> str:
         key_path.parent.mkdir(parents=True, exist_ok=True)
         new_key = secrets.token_hex(32)
         key_path.write_text(new_key, encoding="utf-8")
-        try:
+        with contextlib.suppress(OSError):
             os.chmod(key_path, 0o600)
-        except OSError:
-            pass
         return new_key
     except OSError as exc:
         logger.warning("Could not persist secret key (%s); using ephemeral", exc)
