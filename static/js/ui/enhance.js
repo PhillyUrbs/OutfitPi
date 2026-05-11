@@ -15,6 +15,13 @@
 
 import { ui, currentTheme } from './index.js';
 
+// Themes that style native HTML directly (no web components) and so
+// don't want their inputs replaced by enhancer-created duplicates.
+const CSS_ONLY_THEMES = new Set(['native', 'primer']);
+function shouldEnhance() {
+  return !CSS_ONLY_THEMES.has(currentTheme());
+}
+
 const SKIP_BUTTON_CLASSES = ['icon-btn', 'comfort-step', 'keyboard-hide'];
 const SKIP_PARENTS = ['.keyboard-container', '.dev-toggle', '.restart-overlay'];
 
@@ -145,7 +152,7 @@ export function syncAllReplacements(root = document) {
  * Replace every <button> on the page with the theme's button component.
  */
 export function enhanceButtons(root = document) {
-  if (currentTheme() === 'native') return;
+  if (!shouldEnhance()) return;
   root.querySelectorAll('button').forEach((btn) => {
     if (shouldSkipButton(btn)) return;
     const kind = btn.classList.contains('primary') ? 'primary'
@@ -171,7 +178,7 @@ export function enhanceButtons(root = document) {
  * The themed select fires `change` and we forward to the proxy.
  */
 export function enhanceSelects(root = document) {
-  if (currentTheme() === 'native') return;
+  if (!shouldEnhance()) return;
   root.querySelectorAll('select').forEach((sel) => {
     if (shouldSkipInput(sel)) return;
     const options = Array.from(sel.options).map(o => ({
@@ -201,7 +208,7 @@ export function enhanceSelects(root = document) {
  * the label text wrapping the input).
  */
 export function enhanceSwitches(root = document) {
-  if (currentTheme() === 'native') return;
+  if (!shouldEnhance()) return;
   root.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
     if (shouldSkipInput(cb)) return;
     const proxy = cb;
@@ -230,7 +237,7 @@ export function enhanceSwitches(root = document) {
  * skipped here via data-ui-slider.
  */
 export function enhanceTextInputs(root = document) {
-  if (currentTheme() === 'native') return;
+  if (!shouldEnhance()) return;
   const sel = 'input[type="text"], input[type="number"], input[type="email"]';
   root.querySelectorAll(sel).forEach((inp) => {
     if (shouldSkipInput(inp)) return;
@@ -259,7 +266,7 @@ export function enhanceTextInputs(root = document) {
  * the theme's radio-group component.
  */
 export function enhanceRadios(root = document) {
-  if (currentTheme() === 'native') return;
+  if (!shouldEnhance()) return;
   const groups = new Map();
   root.querySelectorAll('input[type="radio"]').forEach((r) => {
     if (shouldSkipInput(r)) return;
