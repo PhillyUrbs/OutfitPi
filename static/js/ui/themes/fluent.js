@@ -58,6 +58,40 @@ function ensureThemeStyles() {
       display: none;
     }
     body[data-ui-framework="fluent"] fluent-button { min-height: 44px; }
+    /* Outline + transparent buttons inherit dark text from the host's
+     * default neutral foreground; on our dark night-mode fieldsets that
+     * lands as black-on-navy. Force readable text + border colors via
+     * CSS-shadow-parts. */
+    body[data-ui-framework="fluent"].night fluent-button[appearance="outline"]::part(control),
+    body[data-ui-framework="fluent"].night fluent-button:not([appearance])::part(control) {
+      color: #ffffff;
+      border-color: rgba(255,255,255,0.5);
+      background: transparent;
+    }
+    body[data-ui-framework="fluent"].night fluent-button[appearance="outline"]:hover::part(control),
+    body[data-ui-framework="fluent"].night fluent-button:not([appearance]):hover::part(control) {
+      background: rgba(255,255,255,0.08);
+    }
+    /* Radio labels, switch labels, slider tick labels, and option text
+     * also default to Fluent's neutral foreground (near-black). Use
+     * currentColor so they inherit our page foreground (--day-fg /
+     * --night-fg) which is already readable against either background. */
+    body[data-ui-framework="fluent"].night fluent-radio,
+    body[data-ui-framework="fluent"].night fluent-radio-group,
+    body[data-ui-framework="fluent"].night fluent-switch,
+    body[data-ui-framework="fluent"].night fluent-option,
+    body[data-ui-framework="fluent"].night fluent-text-field {
+      color: #ffffff;
+      --neutralForegroundRest: #ffffff;
+      --neutralForegroundHover: #ffffff;
+      --neutralForegroundActive: #ffffff;
+    }
+    body[data-ui-framework="fluent"].night fluent-radio::part(label),
+    body[data-ui-framework="fluent"].night fluent-switch::part(label),
+    body[data-ui-framework="fluent"].night fluent-option::part(content),
+    body[data-ui-framework="fluent"].night fluent-text-field::part(label) {
+      color: #ffffff;
+    }
   `;
   document.head.appendChild(style);
 }

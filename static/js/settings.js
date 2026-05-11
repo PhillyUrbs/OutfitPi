@@ -152,32 +152,33 @@
         // can fire input/change with .value still pointing at the
         // previous tick, so we keep the highest-confidence reading
         // (the last one observed) and write that.
-        const commit = () => {
+        const commit = (src) => {
           const v = parseFloat(comfortInput.value);
+          if (window.trace) trace('comfort.commit', { i, v, raw: comfortInput.value, src });
           if (Number.isNaN(v)) return;
           writeChildOffset(i, v);
           autosave();
         };
-        const commitDeferred = () => {
+        const commitDeferred = (src) => {
           // Run now, next frame, and after a touch-settle delay so
           // whichever fires last (with the final value) wins.
-          commit();
-          requestAnimationFrame(commit);
-          setTimeout(commit, 60);
+          commit(src + ':sync');
+          requestAnimationFrame(() => commit(src + ':raf'));
+          setTimeout(() => commit(src + ':t60'), 60);
         };
         comfortInput = adapter.createSlider({
           min: -10, max: 10, step: 1, value: offset,
           ariaLabel: 'Comfort offset',
-          onInput:  commitDeferred,
-          onChange: commitDeferred,
+          onInput:  () => commitDeferred('input'),
+          onChange: () => commitDeferred('change'),
         });
         // Touchscreen safety net: md-slider events don't bubble through
         // its Shadow DOM to the document-level autosave listener, and
         // its `change` event sometimes fires with a one-tick-stale
         // value on touch. Listen for pointerup on the host as a final
         // commit point.
-        comfortInput.addEventListener('pointerup', commitDeferred);
-        comfortInput.addEventListener('touchend',  commitDeferred);
+        comfortInput.addEventListener('pointerup', () => commitDeferred('pointerup'));
+        comfortInput.addEventListener('touchend',  () => commitDeferred('touchend'));
       } else {
         comfortInput = document.createElement('input');
         comfortInput.type = 'range';
@@ -359,7 +360,11 @@
     let payload;
     try {
       payload = collect();
+      if (window.trace) trace('save.payload', {
+        children: payload.children.map(c => c.comfort_offset_f),
+      });
     } catch (e) {
+      if (window.trace) trace('save.collect_err', { msg: e.message });
       saveInFlight = false;
       err.textContent = 'Could not read form: ' + e.message;
       err.hidden = false;

@@ -356,6 +356,22 @@ def create_app(config_path: Path | None = None) -> Flask:
                     page=page, action=action)
         return jsonify({"ok": True})
 
+    @app.post("/api/_client/trace")
+    def api_client_trace():
+        """Server-side sink for browser trace events.
+
+        Posted by static/js/trace.js when ?trace=1 is set. Logs each
+        event to the app log so it can be tailed via journalctl or
+        systemctl --user status outfitpi on the Pi. Useful for
+        diagnosing touchscreen-only bugs that don't reproduce in
+        Playwright.
+        """
+        body = request.get_json(silent=True) or {}
+        tag = str(body.get("tag") or "trace")[:40]
+        data = body.get("data")
+        logger.info("CLIENT-TRACE [%s] %s", tag, data)
+        return jsonify({"ok": True})
+
     @app.get("/api/settings")
     def api_settings_get():
         cfg = load_config(cfg_path)
