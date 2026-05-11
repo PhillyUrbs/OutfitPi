@@ -9,8 +9,12 @@ permissions:
 
 jobs:
   auto-merge:
-    # Only act on Dependabot PRs.
-    if: github.actor == 'dependabot[bot]'
+    # Only act on Dependabot PRs targeting non-main branches. PRs
+    # landing on main (the production channel) always go through
+    # manual review, even for low-risk patch-level security bumps.
+    if: |
+      github.actor == 'dependabot[bot]' &&
+      github.event.pull_request.base.ref != 'main'
     runs-on: ubuntu-latest
     steps:
       - name: Fetch Dependabot metadata
