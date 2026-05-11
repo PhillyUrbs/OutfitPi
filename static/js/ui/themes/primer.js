@@ -368,6 +368,116 @@ function attachPrimer() {
     body[data-ui-framework="primer"] .ref-item.selected .ref-secondary {
       color: rgba(255,255,255,0.85);
     }
+    /* ── Dashboard surfaces ─────────────────────────────────────── */
+    /* Weather + outfit panes become Primer Boxes (flat #f6f8fa /
+     * #161b22 backgrounds with #d0d7de / #30363d borders). The kid
+     * theme uses bright sun-yellow + grass-green tints; under Primer
+     * we want neutral surfaces that match the rest of the GitHub feel. */
+    body[data-ui-framework="primer"] .pane {
+      background: #f6f8fa !important;
+      color: #1f2328 !important;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      padding: 12px;
+    }
+    body[data-ui-framework="primer"].night .pane,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .pane {
+      background: #161b22 !important;
+      color: #e6edf3 !important;
+      border-color: #30363d;
+    }
+    body[data-ui-framework="primer"] .weather-pane,
+    body[data-ui-framework="primer"] .outfit-pane,
+    body[data-ui-framework="primer"] .outfit-pane.evening {
+      background: #f6f8fa !important;
+      color: #1f2328 !important;
+    }
+    body[data-ui-framework="primer"].night .weather-pane,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .weather-pane,
+    body[data-ui-framework="primer"].night .outfit-pane,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .outfit-pane,
+    body[data-ui-framework="primer"].night .outfit-pane.evening,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .outfit-pane.evening {
+      background: #161b22 !important;
+      color: #e6edf3 !important;
+    }
+    /* Hi/Lo: Primer red/blue instead of kid red/blue. */
+    body[data-ui-framework="primer"] .weather-hilo .hi { color: #cf222e; }
+    body[data-ui-framework="primer"] .weather-hilo .lo { color: #0969da; }
+    body[data-ui-framework="primer"].night .weather-hilo .hi,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .weather-hilo .hi {
+      color: #ff7b72;
+    }
+    body[data-ui-framework="primer"].night .weather-hilo .lo,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .weather-hilo .lo {
+      color: #79c0ff;
+    }
+    /* Outfit pieces become subtle inset Boxes within the pane. */
+    body[data-ui-framework="primer"] .piece {
+      background: #ffffff;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+    }
+    body[data-ui-framework="primer"].night .piece,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .piece {
+      background: #0d1117;
+      border-color: #30363d;
+    }
+    /* Banners: Primer Flash component look (yellow/red tinted box
+     * with a subtle border, not the bright kid orange). */
+    body[data-ui-framework="primer"] .rain-banner {
+      background: #ddf4ff;
+      color: #0969da;
+      border: 1px solid rgba(84,174,255,0.4);
+      border-radius: 6px;
+      font-weight: 500;
+    }
+    body[data-ui-framework="primer"].night .rain-banner,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .rain-banner {
+      background: #0c2d6b;
+      color: #79c0ff;
+      border-color: #1f6feb;
+    }
+    body[data-ui-framework="primer"] .stale-banner {
+      background: #fff8c5;
+      color: #7d4e00;
+      border: 1px solid rgba(212,167,44,0.4);
+      border-radius: 6px;
+      font-weight: 500;
+    }
+    body[data-ui-framework="primer"].night .stale-banner,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .stale-banner {
+      background: #341a00;
+      color: #d29922;
+      border-color: #9e6a03;
+    }
+    /* Dashboard typography: tighten the kid-theme oversized weather
+     * temp + day so it reads as github.com-style data, not signage. */
+    body[data-ui-framework="primer"] .weather-temp {
+      font-weight: 600;
+    }
+    body[data-ui-framework="primer"] .weather-day {
+      font-weight: 600;
+    }
+    body[data-ui-framework="primer"] .piece-label {
+      font-weight: 500;
+      color: #1f2328;
+    }
+    body[data-ui-framework="primer"].night .piece-label,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .piece-label {
+      color: #e6edf3;
+    }
+    /* Bottombar */
+    body[data-ui-framework="primer"] .bottombar {
+      background: transparent;
+      color: #656d76;
+      border-top: 1px solid #d0d7de;
+    }
+    body[data-ui-framework="primer"].night .bottombar,
+    body[data-ui-framework="primer"][data-ui-variant="dark"] .bottombar {
+      color: #7d8590;
+      border-top-color: #30363d;
+    }
   `;
   document.head.appendChild(style);
   _stylesAttached = true;
