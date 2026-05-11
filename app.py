@@ -135,6 +135,12 @@ def create_app(config_path: Path | None = None) -> Flask:
     # may sit open all day; with the default 1h limit, the first slider
     # change after lunch fails with "CSRF token missing or invalid".
     app.config["WTF_CSRF_TIME_LIMIT"] = None
+    # Force the kiosk to revalidate static assets on every request.
+    # Flask defaults to a 12h max-age which means hard-refresh in
+    # Chromium kiosk mode still serves stale CSS/JS. The asset_v query
+    # string still buys real cache friendliness for unchanged content
+    # via 304 Not Modified.
+    app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
     CSRFProtect(app)
 
