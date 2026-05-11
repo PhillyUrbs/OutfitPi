@@ -56,9 +56,11 @@ function ensureThemeStyles() {
     /* Dark color scheme: Material's defaults are light-mode; without
      * dark tokens, md-filled-text-field renders a white container with
      * inherited white body.night text → unreadable. Map a Material 3
-     * baseline dark palette onto the root in night mode. */
-    body[data-ui-framework="material"].night,
-    body[data-ui-framework="material"][data-ui-variant="dark"] {
+     * baseline dark palette onto the root in night mode. We intentionally
+     * key only on body.night (not the framework attribute) so this also
+     * fires when the user has framework=fluent but lingering md-*
+     * elements from a previous render are still on the page. */
+    body.night {
       --md-sys-color-surface: #1c1b1f;
       --md-sys-color-on-surface: #e6e1e5;
       --md-sys-color-surface-container: #211f26;
