@@ -530,6 +530,38 @@ def create_app(config_path: Path | None = None) -> Flask:
             }
         )
 
+    @app.post("/api/location/redetect")
+    def api_location_redetect():
+        """Run an IP-geolocation lookup right now and return the result.
+
+        The settings UI uses this so the Re-detect button updates the
+        on-screen lat/lon immediately rather than waiting for the
+        next config save.
+        """
+        clear_location_cache()
+        # Build a minimal config that forces auto-detect with consent so
+        # get_location runs the IP lookup regardless of what's persisted.
+        cfg = load_config(cfg_path) if config_exists(cfg_path) else Config()
+        cfg.location.latitude = None
+        cfg.location.longitude = None
+        cfg.location.auto = True
+        cfg.location.consent_given = True
+        try:
+            loc = get_location(cfg, force_refresh=True)
+        except LocationError as exc:
+            _capture_exc(exc, route="/api/location/redetect")
+            return jsonify({"error": _safe_error(exc)}), 502
+        return jsonify(
+            {
+                "latitude": loc.latitude,
+                "longitude": loc.longitude,
+                "city": loc.city,
+                "region": loc.region,
+                "country": loc.country,
+                "source": loc.source,
+            }
+        )
+
     @app.get("/api/network-info")
     def api_network_info():
         cfg = load_config(cfg_path) if config_exists(cfg_path) else Config()

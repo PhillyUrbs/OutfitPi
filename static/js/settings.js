@@ -626,7 +626,35 @@
   }
 
   $('redetect').addEventListener('click', async () => {
-    $('loc-display').textContent = 'Re-detecting on next save…';
+    const display = $('loc-display');
+    const prev = display.textContent;
+    display.textContent = 'Re-detecting…';
+    try {
+      const r = await fetch('/api/location/redetect', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken },
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Re-detect failed');
+      $('loc-lat').value = j.latitude;
+      $('loc-lon').value = j.longitude;
+      // Push freshly-detected coords into the in-memory config and
+      // persist immediately so the rest of the app picks them up.
+      cfg.location.latitude = j.latitude;
+      cfg.location.longitude = j.longitude;
+      cfg.location.auto = true;
+      cfg.location.consent_given = true;
+      const where = [j.city, j.region, j.country].filter(Boolean).join(', ');
+      display.textContent = where
+        ? `${where} (${j.latitude.toFixed(4)}, ${j.longitude.toFixed(4)})`
+        : `${j.latitude.toFixed(4)}, ${j.longitude.toFixed(4)}`;
+      autosave();
+      toast('Location updated');
+    } catch (e) {
+      display.textContent = prev;
+      toast('Re-detect failed: ' + e.message, 'err');
+      reportClientError('redetect', e.message);
+    }
   });
 
   async function lookupZip({ silent = false } = {}) {
