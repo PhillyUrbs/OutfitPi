@@ -147,14 +147,29 @@
         updateLabel(v);
       };
       if (adapter && typeof adapter.createSlider === 'function') {
-        // Capture the LATEST authoritative value seen across input,
-        // change, pointerup, and a delayed re-read. md-slider on touch
-        // can fire input/change with .value still pointing at the
-        // previous tick, so we keep the highest-confidence reading
-        // (the last one observed) and write that.
+        // md-slider on touch fires an EXTRA `change` event right
+        // after `pointerup` whose .value has drifted by one tick
+        // (snapped to a half-step boundary). The trace shows it
+        // clearly: drag lands at 0, save fires with 0, then
+        // pointerup, then a change at -1 saves -1. Lock the value
+        // observed at pointerup for ~300ms to filter out the drift,
+        // and force the slider's own .value back so the visible
+        // thumb matches what we committed.
+        let lockedValue = null;
+        let lockUntil = 0;
         const commit = (src) => {
-          const v = parseFloat(comfortInput.value);
-          if (window.trace) trace('comfort.commit', { i, v, raw: comfortInput.value, src });
+          let v;
+          const now = performance.now();
+          if (lockedValue !== null && now < lockUntil) {
+            v = lockedValue;
+            try { comfortInput.value = v; } catch {}
+          } else {
+            v = parseFloat(comfortInput.value);
+          }
+          if (window.trace) trace('comfort.commit', {
+            i, v, raw: comfortInput.value, src,
+            locked: lockedValue !== null && now < lockUntil,
+          });
           if (Number.isNaN(v)) return;
           writeChildOffset(i, v);
           autosave();
@@ -172,13 +187,19 @@
           onInput:  () => commitDeferred('input'),
           onChange: () => commitDeferred('change'),
         });
-        // Touchscreen safety net: md-slider events don't bubble through
-        // its Shadow DOM to the document-level autosave listener, and
-        // its `change` event sometimes fires with a one-tick-stale
-        // value on touch. Listen for pointerup on the host as a final
-        // commit point.
-        comfortInput.addEventListener('pointerup', () => commitDeferred('pointerup'));
-        comfortInput.addEventListener('touchend',  () => commitDeferred('touchend'));
+        // Touchscreen safety net: capture the pointerup value as the
+        // authoritative final reading and lock it for 300ms so the
+        // post-release `change` snap-back can't overwrite it.
+        const lockOnRelease = (src) => {
+          lockedValue = parseFloat(comfortInput.value);
+          lockUntil = performance.now() + 300;
+          if (window.trace) trace('comfort.lock', {
+            i, locked: lockedValue, src,
+          });
+          commitDeferred(src);
+        };
+        comfortInput.addEventListener('pointerup', () => lockOnRelease('pointerup'));
+        comfortInput.addEventListener('touchend',  () => lockOnRelease('touchend'));
       } else {
         comfortInput = document.createElement('input');
         comfortInput.type = 'range';
