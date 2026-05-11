@@ -87,6 +87,64 @@ html, body {
 
 body.night { background: var(--night-bg); color: var(--night-fg); }
 
+/* Dark color tokens for themed components. We define these globally
+ * (not gated on the active framework) because the framework attribute
+ * and the actually-rendered components can disagree (e.g. config says
+ * fluent but lingering md-* elements from an earlier render are still
+ * on the page). Without these, components render with their default
+ * light surfaces while inheriting body.night's white text → unreadable. */
+body.night {
+  /* Material 3 baseline dark palette */
+  --md-sys-color-surface: #1c1b1f;
+  --md-sys-color-on-surface: #e6e1e5;
+  --md-sys-color-surface-container: #211f26;
+  --md-sys-color-surface-container-high: #2b2930;
+  --md-sys-color-surface-container-highest: #36343b;
+  --md-sys-color-on-surface-variant: #cac4d0;
+  --md-sys-color-outline: #938f99;
+  --md-sys-color-outline-variant: #49454f;
+  --md-sys-color-background: #141218;
+  --md-sys-color-on-background: #e6e1e5;
+  --md-sys-color-inverse-surface: #e6e1e5;
+  --md-sys-color-inverse-on-surface: #313033;
+  --md-sys-color-primary: #d0bcff;
+  --md-sys-color-on-primary: #381e72;
+  --md-sys-color-primary-container: #4f378b;
+  --md-sys-color-on-primary-container: #eaddff;
+  --md-sys-color-secondary: #ccc2dc;
+  --md-sys-color-on-secondary: #332d41;
+}
+/* Fluent: the host element inherits body.night's white color but the
+ * component's default --neutralForegroundRest is near-black, so labels
+ * and inputs render unreadable. Force white via the design tokens and
+ * shadow parts. */
+body.night fluent-radio,
+body.night fluent-radio-group,
+body.night fluent-switch,
+body.night fluent-option,
+body.night fluent-text-field {
+  color: #ffffff;
+  --neutralForegroundRest: #ffffff;
+  --neutralForegroundHover: #ffffff;
+  --neutralForegroundActive: #ffffff;
+}
+body.night fluent-radio::part(label),
+body.night fluent-switch::part(label),
+body.night fluent-option::part(content),
+body.night fluent-text-field::part(label) {
+  color: #ffffff;
+}
+body.night fluent-button[appearance="outline"]::part(control),
+body.night fluent-button:not([appearance])::part(control) {
+  color: #ffffff;
+  border-color: rgba(255,255,255,0.5);
+  background: transparent;
+}
+body.night fluent-button[appearance="outline"]:hover::part(control),
+body.night fluent-button:not([appearance]):hover::part(control) {
+  background: rgba(255,255,255,0.08);
+}
+
 /* Dashboard pages: lock to viewport, no scrollbars. */
 body:not(.settings-page):not(.setup) {
   height: 100vh;

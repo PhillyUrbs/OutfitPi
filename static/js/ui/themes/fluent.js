@@ -58,40 +58,6 @@ function ensureThemeStyles() {
       display: none;
     }
     body[data-ui-framework="fluent"] fluent-button { min-height: 44px; }
-    /* Outline + transparent buttons inherit dark text from the host's
-     * default neutral foreground; on our dark night-mode fieldsets that
-     * lands as black-on-navy. Force readable text + border colors via
-     * CSS-shadow-parts. */
-    body.night fluent-button[appearance="outline"]::part(control),
-    body.night fluent-button:not([appearance])::part(control) {
-      color: #ffffff;
-      border-color: rgba(255,255,255,0.5);
-      background: transparent;
-    }
-    body.night fluent-button[appearance="outline"]:hover::part(control),
-    body.night fluent-button:not([appearance]):hover::part(control) {
-      background: rgba(255,255,255,0.08);
-    }
-    /* Radio labels, switch labels, slider tick labels, and option text
-     * also default to Fluent's neutral foreground (near-black). Use
-     * currentColor so they inherit our page foreground (--day-fg /
-     * --night-fg) which is already readable against either background. */
-    body.night fluent-radio,
-    body.night fluent-radio-group,
-    body.night fluent-switch,
-    body.night fluent-option,
-    body.night fluent-text-field {
-      color: #ffffff;
-      --neutralForegroundRest: #ffffff;
-      --neutralForegroundHover: #ffffff;
-      --neutralForegroundActive: #ffffff;
-    }
-    body.night fluent-radio::part(label),
-    body.night fluent-switch::part(label),
-    body.night fluent-option::part(content),
-    body.night fluent-text-field::part(label) {
-      color: #ffffff;
-    }
   `;
   document.head.appendChild(style);
 }

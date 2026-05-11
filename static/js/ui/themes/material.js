@@ -53,33 +53,6 @@ function ensureThemeStyles() {
     body[data-ui-framework="material"] md-filled-button,
     body[data-ui-framework="material"] md-outlined-button,
     body[data-ui-framework="material"] md-text-button { min-height: 44px; }
-    /* Dark color scheme: Material's defaults are light-mode; without
-     * dark tokens, md-filled-text-field renders a white container with
-     * inherited white body.night text → unreadable. Map a Material 3
-     * baseline dark palette onto the root in night mode. We intentionally
-     * key only on body.night (not the framework attribute) so this also
-     * fires when the user has framework=fluent but lingering md-*
-     * elements from a previous render are still on the page. */
-    body.night {
-      --md-sys-color-surface: #1c1b1f;
-      --md-sys-color-on-surface: #e6e1e5;
-      --md-sys-color-surface-container: #211f26;
-      --md-sys-color-surface-container-high: #2b2930;
-      --md-sys-color-surface-container-highest: #36343b;
-      --md-sys-color-on-surface-variant: #cac4d0;
-      --md-sys-color-outline: #938f99;
-      --md-sys-color-outline-variant: #49454f;
-      --md-sys-color-background: #141218;
-      --md-sys-color-on-background: #e6e1e5;
-      --md-sys-color-inverse-surface: #e6e1e5;
-      --md-sys-color-inverse-on-surface: #313033;
-      --md-sys-color-primary: #d0bcff;
-      --md-sys-color-on-primary: #381e72;
-      --md-sys-color-primary-container: #4f378b;
-      --md-sys-color-on-primary-container: #eaddff;
-      --md-sys-color-secondary: #ccc2dc;
-      --md-sys-color-on-secondary: #332d41;
-    }
   `;
   document.head.appendChild(style);
 }
