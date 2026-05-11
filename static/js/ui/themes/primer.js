@@ -274,7 +274,7 @@ function attachPrimer() {
       width: 20px;
       height: 20px;
       border-radius: 50%;
-      background: #1f883d;
+      background: #0969da;
       border: 2px solid #ffffff;
       box-shadow: 0 1px 3px rgba(0,0,0,0.3);
       cursor: pointer;
@@ -284,7 +284,7 @@ function attachPrimer() {
       width: 20px;
       height: 20px;
       border-radius: 50%;
-      background: #1f883d;
+      background: #0969da;
       border: 2px solid #ffffff;
       box-shadow: 0 1px 3px rgba(0,0,0,0.3);
       cursor: pointer;
@@ -293,6 +293,7 @@ function attachPrimer() {
     body[data-ui-framework="primer"].night .comfort-slider::-webkit-slider-thumb,
     body[data-ui-framework="primer"][data-ui-variant="dark"] .comfort-slider::-moz-range-thumb,
     body[data-ui-framework="primer"].night .comfort-slider::-moz-range-thumb {
+      background: #2f81f7;
       border-color: #0d1117;
     }
     /* Force-install panel: kid theme uses a green dashed accent box
