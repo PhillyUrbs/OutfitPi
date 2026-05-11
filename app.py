@@ -380,6 +380,7 @@ def create_app(config_path: Path | None = None) -> Flask:
         """
         body = request.get_json(silent=True) or {}
         tag = str(body.get("tag") or "trace")[:40]
+        tag = tag.replace("\r", "").replace("\n", "")
         data = body.get("data")
         logger.info("CLIENT-TRACE [%s] %s", tag, data)
         return jsonify({"ok": True})
