@@ -51,8 +51,15 @@ web_remote:
   enabled: false
 
 display:
-  # "auto" (light by day, dark at night), "light", or "dark"
+  # Color variant: "auto" (light by day, dark at night), "light", or "dark".
   theme: auto
+  # UI framework: "native" (built-in), "material", "fluent", or "primer".
+  framework: material
+  # Light/dark variant for the chosen framework. "auto" matches `theme`.
+  variant: auto
+  # Accent color: "default" uses the framework's own palette. Other
+  # options: orange | blue | green | red | purple | teal | yellow.
+  colorway: default
 
 server:
   port: 5000

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 import time
+from collections import Counter
 from dataclasses import dataclass
 
 import httpx
@@ -74,6 +76,13 @@ class CurrentWeather:
     daily_icon: str | None = None
     sunrise: str | None = None  # ISO8601 local
     sunset: str | None = None
+    # Afternoon (12:00–17:00 local) snapshot — the window when kids are
+    # outside, used to drive base-layer outfit recommendations.
+    temp_afternoon: float | None = None
+    apparent_afternoon: float | None = None
+    afternoon_weather_code: int | None = None
+    afternoon_description: str | None = None
+    afternoon_icon: str | None = None
     stale: bool = False
 
 
@@ -92,9 +101,57 @@ def _first(lst, idx=0, cast=float):
         return None
 
 
+# Afternoon window: 12:00–17:00 local (kids' outdoor play window).
+AFTERNOON_START_HOUR = 12
+AFTERNOON_END_HOUR = 17
+
+
+def _afternoon_window(hourly: dict) -> tuple[float | None, float | None, int | None]:
+    """Return (peak temp, peak apparent temp, dominant weather code) for
+    the afternoon window. Returns (None, None, None) if hourly data is
+    missing or empty.
+    """
+    times = hourly.get("time") or []
+    temps = hourly.get("temperature_2m") or []
+    apparent = hourly.get("apparent_temperature") or []
+    codes = hourly.get("weather_code") or []
+    if not times:
+        return (None, None, None)
+
+    sel_temps: list[float] = []
+    sel_apparent: list[float] = []
+    sel_codes: list[int] = []
+    for i, t in enumerate(times):
+        try:
+            hour = int(str(t).split("T", 1)[1].split(":", 1)[0])
+        except (IndexError, ValueError):
+            continue
+        if hour < AFTERNOON_START_HOUR or hour > AFTERNOON_END_HOUR:
+            continue
+        if i < len(temps) and temps[i] is not None:
+            sel_temps.append(float(temps[i]))
+        if i < len(apparent) and apparent[i] is not None:
+            sel_apparent.append(float(apparent[i]))
+        if i < len(codes) and codes[i] is not None:
+            with contextlib.suppress(TypeError, ValueError):
+                sel_codes.append(int(codes[i]))
+
+    peak_temp = max(sel_temps) if sel_temps else None
+    peak_apparent = max(sel_apparent) if sel_apparent else None
+    dominant_code: int | None = None
+    if sel_codes:
+        precip_in_window = [c for c in sel_codes if c in RAIN_CODES or c in SNOW_CODES]
+        if precip_in_window:
+            dominant_code = Counter(precip_in_window).most_common(1)[0][0]
+        else:
+            dominant_code = Counter(sel_codes).most_common(1)[0][0]
+    return (peak_temp, peak_apparent, dominant_code)
+
+
 def _parse(payload: dict, units: str) -> CurrentWeather:
     current = payload.get("current") or {}
     daily = payload.get("daily") or {}
+    hourly = payload.get("hourly") or {}
     code = int(current.get("weather_code", 0))
     desc, icon = _describe(code)
     precip = float(current.get("precipitation", 0.0) or 0.0)
@@ -104,6 +161,11 @@ def _parse(payload: dict, units: str) -> CurrentWeather:
     uv = _first(daily.get("uv_index_max"))
     daily_code = _first(daily.get("weather_code"), cast=int)
     daily_desc, daily_icon = _describe(daily_code) if daily_code is not None else (None, None)
+
+    aft_temp, aft_apparent, aft_code = _afternoon_window(hourly)
+    aft_desc, aft_icon = (None, None)
+    if aft_code is not None:
+        aft_desc, aft_icon = _describe(aft_code)
 
     return CurrentWeather(
         temperature=float(current.get("temperature_2m", 0.0)),
@@ -131,6 +193,11 @@ def _parse(payload: dict, units: str) -> CurrentWeather:
         daily_icon=daily_icon,
         sunrise=_first(daily.get("sunrise"), cast=str),
         sunset=_first(daily.get("sunset"), cast=str),
+        temp_afternoon=aft_temp,
+        apparent_afternoon=aft_apparent,
+        afternoon_weather_code=aft_code,
+        afternoon_description=aft_desc,
+        afternoon_icon=aft_icon,
     )
 
 
@@ -147,6 +214,7 @@ def fetch_current_weather(
         "latitude": latitude,
         "longitude": longitude,
         "current": "temperature_2m,apparent_temperature,weather_code,precipitation,rain,wind_speed_10m,is_day,relative_humidity_2m",
+        "hourly": "temperature_2m,apparent_temperature,weather_code",
         "daily": "uv_index_max,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,weather_code,sunrise,sunset",
         "temperature_unit": units,
         "wind_speed_unit": "mph",
@@ -217,4 +285,9 @@ def _docs_mode_weather(units: str) -> CurrentWeather:
         daily_icon="cloud-sun",
         sunrise="2026-05-08T06:00",
         sunset="2026-05-08T20:00",
+        temp_afternoon=hi,
+        apparent_afternoon=hi - 1,
+        afternoon_weather_code=2,
+        afternoon_description="Partly cloudy",
+        afternoon_icon="cloud-sun",
     )

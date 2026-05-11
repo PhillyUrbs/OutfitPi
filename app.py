@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import secrets
@@ -81,6 +82,46 @@ logging.basicConfig(
 )
 logger = logging.getLogger("outfitpi")
 
+# Process-start timestamp; surfaced via /api/health so dashboards can
+# reload themselves after a service restart (also drops any stale CSRF
+# token they were holding from before the restart).
+_STARTED_AT = int(time.time())
+
+
+def _load_or_create_secret_key(cfg_path: Path) -> str:
+    """Return a stable Flask secret key.
+
+    Order of precedence:
+      1. ``OUTFITPI_SECRET_KEY`` env var (operator override).
+      2. ``.secret_key`` file alongside the config; created on first run.
+    Without this, a new random key is generated at every process start
+    and every CSRF token already in the user's open kiosk page is
+    invalidated, producing "CSRF token missing or invalid" on the next
+    save.
+    """
+    env = os.environ.get("OUTFITPI_SECRET_KEY")
+    if env:
+        return env
+    key_path = cfg_path.parent / ".secret_key"
+    try:
+        if key_path.exists():
+            existing = key_path.read_text(encoding="utf-8").strip()
+            if existing:
+                return existing
+        key_path.parent.mkdir(parents=True, exist_ok=True)
+        new_key = secrets.token_hex(32)
+        key_path.write_text(new_key, encoding="utf-8")
+        with contextlib.suppress(OSError):
+            os.chmod(key_path, 0o600)
+        return new_key
+    except OSError as exc:
+        # Sanitize the error message before logging — OSError repr can
+        # contain a path supplied via env var, so strip newlines to
+        # prevent log-injection.
+        safe_msg = str(exc).replace("\r", "").replace("\n", "")
+        logger.warning("Could not persist secret key (%s); using ephemeral", safe_msg)
+        return secrets.token_hex(32)
+
 
 def create_app(config_path: Path | None = None) -> Flask:
     cfg_path = Path(config_path) if config_path else CONFIG_PATH
@@ -89,10 +130,20 @@ def create_app(config_path: Path | None = None) -> Flask:
         template_folder=str(BASE_DIR / "templates"),
         static_folder=str(BASE_DIR / "static"),
     )
-    app.config["SECRET_KEY"] = os.environ.get("OUTFITPI_SECRET_KEY", secrets.token_hex(32))
+    app.config["SECRET_KEY"] = _load_or_create_secret_key(cfg_path)
     app.config["CONFIG_PATH"] = cfg_path
     app.config["BABEL_DEFAULT_LOCALE"] = "en"
     app.config["BABEL_TRANSLATION_DIRECTORIES"] = str(BASE_DIR / "translations")
+    # Disable CSRF token expiry: this is a long-running kiosk page that
+    # may sit open all day; with the default 1h limit, the first slider
+    # change after lunch fails with "CSRF token missing or invalid".
+    app.config["WTF_CSRF_TIME_LIMIT"] = None
+    # Force the kiosk to revalidate static assets on every request.
+    # Flask defaults to a 12h max-age which means hard-refresh in
+    # Chromium kiosk mode still serves stale CSS/JS. The asset_v query
+    # string still buys real cache friendliness for unchanged content
+    # via 304 Not Modified.
+    app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
     CSRFProtect(app)
 
@@ -132,7 +183,14 @@ def create_app(config_path: Path | None = None) -> Flask:
 
     @app.context_processor
     def _inject_globals() -> dict[str, Any]:
-        return {"csrf_token": _csrf_meta, "app_version": __version__}
+        # asset_v changes on every process start so static asset URLs
+        # bust the browser cache after a service restart (otherwise
+        # kiosk Chromium can sit on stale CSS/JS for hours).
+        return {
+            "csrf_token": _csrf_meta,
+            "app_version": __version__,
+            "asset_v": str(_STARTED_AT),
+        }
 
     @app.before_request
     def _setup_redirect():
@@ -236,7 +294,9 @@ def create_app(config_path: Path | None = None) -> Flask:
         # Tiny endpoint used by the front-end to detect when the server is
         # back online after an update or remote-toggle restart. Includes
         # the local git HEAD short SHA so the UI can detect dev-channel
-        # rebuilds that don't bump __version__.
+        # rebuilds that don't bump __version__, plus a server start
+        # timestamp so dashboards reload after any restart (which also
+        # invalidates whatever in-page CSRF token they were holding).
         sha = ""
         try:
             result = subprocess.run(
@@ -251,7 +311,12 @@ def create_app(config_path: Path | None = None) -> Flask:
         except (FileNotFoundError, subprocess.SubprocessError):
             # No git or repo unavailable; ship without the SHA.
             pass
-        return jsonify({"ok": True, "version": __version__, "sha": sha})
+        return jsonify({
+            "ok": True,
+            "version": __version__,
+            "sha": sha,
+            "started_at": _STARTED_AT,
+        })
 
     @app.get("/api/_test/raise")
     def api_test_raise():
@@ -305,6 +370,27 @@ def create_app(config_path: Path | None = None) -> Flask:
         # context if the user keeps poking.
         _breadcrumb("client", message, level="warning",
                     page=page, action=action)
+        return jsonify({"ok": True})
+
+    @app.post("/api/_client/trace")
+    def api_client_trace():
+        """Server-side sink for browser trace events.
+
+        Posted by static/js/trace.js when ?trace=1 is set. Logs each
+        event to the app log so it can be tailed via journalctl or
+        systemctl --user status outfitpi on the Pi. Useful for
+        diagnosing touchscreen-only bugs that don't reproduce in
+        Playwright.
+        """
+        body = request.get_json(silent=True) or {}
+        # Sanitize at point-of-use: the tag and data come from the
+        # browser and could contain newlines that would forge fake log
+        # lines. Strip CR/LF before they ever reach the logger.
+        raw_tag = str(body.get("tag") or "trace")[:40]
+        raw_data = str(body.get("data"))[:1000]
+        safe_tag = raw_tag.replace("\r", "").replace("\n", "")
+        safe_data = raw_data.replace("\r", "").replace("\n", "")
+        logger.info("CLIENT-TRACE [%s] %s", safe_tag, safe_data)
         return jsonify({"ok": True})
 
     @app.get("/api/settings")
@@ -452,6 +538,42 @@ def create_app(config_path: Path | None = None) -> Flask:
             }
         )
 
+    @app.post("/api/location/redetect")
+    def api_location_redetect():
+        """Run an IP-geolocation lookup right now and return the result.
+
+        The settings UI uses this so the Re-detect button updates the
+        on-screen lat/lon immediately rather than waiting for the
+        next config save.
+        """
+        clear_location_cache()
+        # Build a minimal config that forces auto-detect with consent so
+        # get_location runs the IP lookup regardless of what's persisted.
+        cfg = load_config(cfg_path) if config_exists(cfg_path) else Config()
+        cfg.location.latitude = None
+        cfg.location.longitude = None
+        cfg.location.auto = True
+        cfg.location.consent_given = True
+        try:
+            loc = get_location(cfg, force_refresh=True)
+        except LocationError as exc:
+            _capture_exc(exc, route="/api/location/redetect")
+            # Generic envelope only — the full exception is captured in
+            # telemetry, so don't include any string derived from it in
+            # the response. CodeQL flagged the previous _safe_error()
+            # detail as potential stack-trace exposure.
+            return jsonify({"error": "location_error"}), 502
+        return jsonify(
+            {
+                "latitude": loc.latitude,
+                "longitude": loc.longitude,
+                "city": loc.city,
+                "region": loc.region,
+                "country": loc.country,
+                "source": loc.source,
+            }
+        )
+
     @app.get("/api/network-info")
     def api_network_info():
         cfg = load_config(cfg_path) if config_exists(cfg_path) else Config()
@@ -566,7 +688,18 @@ def _build_config_from_payload(data: dict[str, Any]) -> Config:
 
     disp = data.get("display") or {}
     theme = str(disp.get("theme", "auto")).strip().lower()
-    cfg.display = Display(theme=theme if theme in {"auto", "light", "dark"} else "auto")
+    if theme not in {"auto", "light", "dark"}:
+        theme = "auto"
+    framework = str(disp.get("framework", "material")).strip().lower()
+    if framework not in {"native", "material", "fluent", "primer"}:
+        framework = "material"
+    variant = str(disp.get("variant", theme)).strip().lower()
+    if variant not in {"auto", "light", "dark"}:
+        variant = theme
+    colorway = str(disp.get("colorway", "default")).strip().lower()
+    if colorway not in {"default", "orange", "blue", "green", "red", "purple", "teal", "yellow"}:
+        colorway = "default"
+    cfg.display = Display(theme=theme, framework=framework, variant=variant, colorway=colorway)
 
     srv = data.get("server") or {}
     cfg.server = Server(port=int(srv.get("port", 5000)))

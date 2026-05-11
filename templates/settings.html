@@ -6,8 +6,10 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>OutfitPi Settings</title>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ asset_v }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/colorways.css') }}">
   <script src="{{ url_for('static', filename='js/theme.js') }}" defer></script>
+  <script type="module" src="{{ url_for('static', filename='js/theme-bootstrap.js') }}"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/simple-keyboard/index.css') }}">
 </head>
 <body class="settings-page">
@@ -92,7 +94,7 @@
         <label>Or enter a ref (tag, branch or SHA)
           <input type="text" id="dev-ref-input" placeholder="dev | v0.4.0 | a1b2c3d" autocomplete="off">
         </label>
-        <button type="button" class="secondary" id="force-update">Force install</button>
+        <button type="button" class="primary" id="force-update">Force install</button>
       </div>
       <label class="big-toggle"><input type="checkbox" id="auto-check" checked> Auto-check daily</label>
       <label class="big-toggle"><input type="checkbox" id="auto-install"> Auto-install</label>
@@ -127,6 +129,27 @@
           <option value="dark">Dark</option>
         </select>
       </label>
+      <label>UI framework
+        <select id="framework">
+          <option value="native">Native (built-in)</option>
+          <option value="material">Material</option>
+          <option value="fluent">Fluent</option>
+          <option value="primer">Primer</option>
+        </select>
+      </label>
+      <label>Accent color
+        <select id="colorway">
+          <option value="default">Default (framework's own)</option>
+          <option value="orange">Orange</option>
+          <option value="blue">Blue</option>
+          <option value="green">Green</option>
+          <option value="red">Red</option>
+          <option value="purple">Purple</option>
+          <option value="teal">Teal</option>
+          <option value="yellow">Yellow</option>
+        </select>
+      </label>
+      <p class="hint">Switching frameworks reloads the page. Custom themes can be added by dropping a JS module into <code>static/js/ui/themes/</code>.</p>
     </fieldset>
 
     <fieldset>
@@ -159,6 +182,8 @@
   <script src="{{ url_for('static', filename='vendor/simple-keyboard/index.js') }}"></script>
   <script src="{{ url_for('static', filename='js/keyboard.js') }}"></script>
   <script src="{{ url_for('static', filename='js/drag-scroll.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/auto-reload.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/trace.js') }}"></script>
   <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
 </body>
 </html>

@@ -36,3 +36,6 @@ Thumbs.db
 /_site/
 docs/img/*.png
 !docs/img/_placeholder.png
+
+# Local Playwright screenshots
+_settings_*.png

@@ -5,6 +5,16 @@
 
   const $ = (id) => document.getElementById(id);
 
+  // Map a comfort offset (°F) to a kid-friendly descriptor used in the
+  // settings slider label. Negative = runs warm, positive = runs cold.
+  function describeComfort(offset) {
+    if (offset <= -7) return 'runs hot';
+    if (offset <= -3) return 'a bit warmer than most';
+    if (offset >= 7) return 'gets cold easily';
+    if (offset >= 3) return 'a bit cooler than most';
+    return 'average';
+  }
+
   let toastTimer = null;
   function toast(msg, kind = 'ok') {
     const t = $('toast');
@@ -103,16 +113,128 @@
 
       const offset = Number(c.comfort_offset_f) || 0;
       const comfortLabel = document.createElement('label');
-      comfortLabel.textContent = `Comfort ${offset >= 0 ? '+' : ''}${offset}°F`;
-      const comfortInput = document.createElement('input');
-      comfortInput.type = 'range';
-      comfortInput.min = '-10';
-      comfortInput.max = '10';
-      comfortInput.step = '1';
-      comfortInput.value = String(offset);
+      const updateLabel = (v) => {
+        const n = Number(v) || 0;
+        comfortLabel.firstChild.nodeValue =
+          `Comfort ${n >= 0 ? '+' : ''}${n}°F (${describeComfort(n)})`;
+      };
+      comfortLabel.append(`Comfort ${offset >= 0 ? '+' : ''}${offset}°F (${describeComfort(offset)})`);
+
+      const comfortRow = document.createElement('div');
+      comfortRow.className = 'comfort-row';
+
+      const dec = document.createElement('button');
+      dec.type = 'button';
+      dec.className = 'comfort-step';
+      dec.textContent = '−';
+      dec.setAttribute('aria-label', 'Decrease comfort offset');
+
+      // Use the theme adapter when available so the active framework's
+      // (Material/Fluent/Primer) slider is used. Falls back to native.
+      const adapter = window.OutfitPiUI && window.OutfitPiUI.ui;
+      let comfortInput;
+      // Themed sliders (md-slider in particular) dispatch input/change
+      // *before* their .value property finalizes, so reading the value
+      // synchronously in the event handler is off by one tick. Defer
+      // both the cfg write and label update to the next animation
+      // frame, by which time the property has settled.
+      const writeChildOffset = (idx, raw) => {
+        const v = parseFloat(raw);
+        if (Number.isNaN(v)) return;
+        const child = cfg.children[idx];
+        if (!child) return;
+        child.comfort_offset_f = v;
+        updateLabel(v);
+      };
+      if (adapter && typeof adapter.createSlider === 'function') {
+        // md-slider on touch fires an EXTRA `change` event right
+        // after `pointerup` whose .value has drifted by one tick
+        // (snapped to a half-step boundary). The trace shows it
+        // clearly: drag lands at 0, save fires with 0, then
+        // pointerup, then a change at -1 saves -1. Lock the value
+        // observed at pointerup for ~300ms to filter out the drift,
+        // and force the slider's own .value back so the visible
+        // thumb matches what we committed.
+        let lockedValue = null;
+        let lockUntil = 0;
+        const commit = (src) => {
+          let v;
+          const now = performance.now();
+          if (lockedValue !== null && now < lockUntil) {
+            v = lockedValue;
+            try { comfortInput.value = v; } catch {}
+          } else {
+            v = parseFloat(comfortInput.value);
+          }
+          if (window.trace) trace('comfort.commit', {
+            i, v, raw: comfortInput.value, src,
+            locked: lockedValue !== null && now < lockUntil,
+          });
+          if (Number.isNaN(v)) return;
+          writeChildOffset(i, v);
+          autosave();
+        };
+        const commitDeferred = (src) => {
+          // Run now, next frame, and after a touch-settle delay so
+          // whichever fires last (with the final value) wins.
+          commit(src + ':sync');
+          requestAnimationFrame(() => commit(src + ':raf'));
+          setTimeout(() => commit(src + ':t60'), 60);
+        };
+        comfortInput = adapter.createSlider({
+          min: -10, max: 10, step: 1, value: offset,
+          ariaLabel: 'Comfort offset',
+          onInput:  () => commitDeferred('input'),
+          onChange: () => commitDeferred('change'),
+        });
+        // Touchscreen safety net: capture the pointerup value as the
+        // authoritative final reading and lock it for 300ms so the
+        // post-release `change` snap-back can't overwrite it.
+        const lockOnRelease = (src) => {
+          lockedValue = parseFloat(comfortInput.value);
+          lockUntil = performance.now() + 300;
+          if (window.trace) trace('comfort.lock', {
+            i, locked: lockedValue, src,
+          });
+          commitDeferred(src);
+        };
+        comfortInput.addEventListener('pointerup', () => lockOnRelease('pointerup'));
+        comfortInput.addEventListener('touchend',  () => lockOnRelease('touchend'));
+      } else {
+        comfortInput = document.createElement('input');
+        comfortInput.type = 'range';
+        comfortInput.min = '-10';
+        comfortInput.max = '10';
+        comfortInput.step = '1';
+        comfortInput.value = String(offset);
+        comfortInput.addEventListener('input', (e) => updateLabel(e.target.value));
+      }
+      // Always present so the autosave/save-payload code can find them.
       comfortInput.dataset.i = i;
       comfortInput.dataset.k = 'comfort_offset_f';
-      comfortLabel.append(comfortInput);
+      if (!comfortInput.classList.contains('comfort-slider')) {
+        comfortInput.classList.add('comfort-slider');
+      }
+
+      const inc = document.createElement('button');
+      inc.type = 'button';
+      inc.className = 'comfort-step';
+      inc.textContent = '+';
+      inc.setAttribute('aria-label', 'Increase comfort offset');
+
+      const stepBy = (delta) => {
+        const cur = Number(comfortInput.value) || 0;
+        const next = Math.max(-10, Math.min(10, cur + delta));
+        if (next === cur) return;
+        comfortInput.value = next;
+        writeChildOffset(i, next);
+        autosave();
+      };
+      dec.addEventListener('click', (e) => { e.preventDefault(); stepBy(-1); });
+      inc.addEventListener('click', (e) => { e.preventDefault(); stepBy(+1); });
+
+      comfortRow.append(dec, comfortInput, inc);
+      comfortLabel.append(comfortRow);
 
       const rm = document.createElement('button');
       rm.type = 'button';
@@ -123,7 +245,18 @@
       row.append(nameInput, genderSel, comfortLabel, rm);
       list.append(row);
     });
-    $('add-child').disabled = cfg.children.length >= 2;
+    const atCap = cfg.children.length >= 2;
+    $('add-child').disabled = atCap;
+    $('add-child').hidden = atCap;
+    // Themed replacement (md-outlined-button etc.) lives next to the
+    // proxy and was hidden via display:none on the proxy; we need to
+    // toggle the replacement's visibility too.
+    let r = $('add-child').nextSibling;
+    while (r && r.nodeType !== 1) r = r.nextSibling;
+    if (r && r.dataset && r.dataset.uiEnhanced === '1') {
+      r.hidden = atCap;
+      r.style.display = atCap ? 'none' : '';
+    }
   }
 
   function renderAll() {
@@ -144,17 +277,54 @@
     $('channel').value = cfg.updates.channel;
     toggleDevInstall(cfg.updates.channel === 'dev');
     $('theme').value = (cfg.display && cfg.display.theme) || 'auto';
+    if ($('framework')) {
+      $('framework').value = (cfg.display && cfg.display.framework) || 'material';
+    }
+    if ($('colorway')) {
+      $('colorway').value = (cfg.display && cfg.display.colorway) || 'default';
+    }
   }
 
   async function load() {
+    // Wait for the active UI framework to finish loading so renderChildren
+    // uses the right createSlider implementation on the first paint.
+    // theme-bootstrap is loaded as a module so it executes deferred —
+    // we may have to spin briefly until window.OutfitPiUI.ready exists.
+    for (let i = 0; i < 50; i++) {
+      if (window.OutfitPiUI && window.OutfitPiUI.ready) break;
+      await new Promise(r => setTimeout(r, 50));
+    }
+    if (window.OutfitPiUI && window.OutfitPiUI.ready) {
+      try { await window.OutfitPiUI.ready; } catch {}
+    }
     const r = await fetch('/api/settings');
     cfg = await r.json();
     renderAll();
+    // After populating native control values from the server, push the
+    // values into any themed replacements the enhancer already inserted.
+    if (window.OutfitPiUI && typeof window.OutfitPiUI.syncAllReplacements === 'function') {
+      try { window.OutfitPiUI.syncAllReplacements(document); } catch {}
+    }
   }
 
   function collect() {
     const out = JSON.parse(JSON.stringify(cfg));
-    out.units.temperature = document.querySelector('input[name="units"]:checked').value;
+    // Helper: read a radio group's selected value, falling back to the
+    // existing cfg value when the enhancer's md-radio-group race
+    // temporarily un-checks every proxy radio.
+    const radioVal = (name, fallback) => {
+      const checked = document.querySelector(`input[name="${name}"]:checked`);
+      if (checked) return checked.value;
+      // Try the themed replacement directly.
+      const group = document.querySelector(
+        `[role="radiogroup"][data-ui-enhanced="1"]`);
+      if (group && group.value) {
+        const r = group.querySelector(`md-radio[name="${name}"], fluent-radio[name="${name}"]`);
+        if (r) return group.value;
+      }
+      return fallback;
+    };
+    out.units.temperature = radioVal('units', cfg.units.temperature);
     out.thresholds.hot = parseFloat($('th-hot').value);
     out.thresholds.warm = parseFloat($('th-warm').value);
     out.thresholds.cool = parseFloat($('th-cool').value);
@@ -163,13 +333,18 @@
     out.location.auto = $('loc-auto').checked;
     out.location.consent_given = out.location.auto;
     out.web_remote.enabled = $('web-remote').checked;
-    out.telemetry.level = document.querySelector('input[name="telemetry"]:checked').value;
+    out.telemetry.level = radioVal('telemetry', cfg.telemetry.level);
     out.refresh_interval_minutes = parseInt($('refresh-min').value, 10);
     out.language = $('language').value;
     out.updates.auto_check = $('auto-check').checked;
     out.updates.auto_install = $('auto-install').checked;
     out.updates.channel = $('channel').value;
-    out.display = { theme: $('theme').value };
+    out.display = {
+      theme: $('theme').value,
+      framework: $('framework') ? $('framework').value : (cfg.display && cfg.display.framework) || 'material',
+      variant: $('theme').value,
+      colorway: $('colorway') ? $('colorway').value : (cfg.display && cfg.display.colorway) || 'default',
+    };
     return out;
   }
 
@@ -181,10 +356,13 @@
   $('children-list').addEventListener('input', (e) => {
     const i = e.target.dataset.i, k = e.target.dataset.k;
     if (i === undefined) return;
+    // Comfort sliders write through their own deferred onInput/onChange
+    // callbacks; reading e.target.value synchronously here would be
+    // stale by one tick on themed sliders.
+    if (k === 'comfort_offset_f') return;
     const child = cfg.children[parseInt(i, 10)];
     if (!child) return;
-    if (k === 'comfort_offset_f') { child[k] = parseFloat(e.target.value); renderChildren(); }
-    else child[k] = e.target.value;
+    child[k] = e.target.value;
   });
   $('children-list').addEventListener('click', (e) => {
     const i = e.target.dataset.rm;
@@ -200,7 +378,20 @@
     saveInFlight = true;
     const ok = $('settings-ok'), err = $('settings-error');
     err.hidden = true;
-    const payload = collect();
+    let payload;
+    try {
+      payload = collect();
+      if (window.trace) trace('save.payload', {
+        children: payload.children.map(c => c.comfort_offset_f),
+      });
+    } catch (e) {
+      if (window.trace) trace('save.collect_err', { msg: e.message });
+      saveInFlight = false;
+      err.textContent = 'Could not read form: ' + e.message;
+      err.hidden = false;
+      reportClientError('settings-collect', e.message);
+      return;
+    }
     const wasEnabled = cfg.web_remote.enabled;
     const willChangeBind = wasEnabled !== payload.web_remote.enabled;
     try {
@@ -262,6 +453,41 @@
     applyChannelDefaults();
     autosave();
   });
+
+  // Switching the UI framework requires a full page reload so the new
+  // theme module's vendor imports + CSS take effect cleanly. Save first
+  // (so the choice persists), then reload.
+  if ($('framework')) {
+    $('framework').addEventListener('change', async () => {
+      try {
+        if (window.OutfitPiUI && typeof window.OutfitPiUI.setFramework === 'function') {
+          await window.OutfitPiUI.setFramework($('framework').value, $('theme').value);
+        }
+      } catch {}
+      await doSave();
+      window.location.reload();
+    });
+  }
+  // Variant (light/dark/auto) takes effect immediately without reload.
+  $('theme').addEventListener('change', () => {
+    try {
+      if (window.OutfitPiUI && typeof window.OutfitPiUI.setFramework === 'function') {
+        const fw = $('framework') ? $('framework').value : 'native';
+        const cw = $('colorway') ? $('colorway').value : 'default';
+        window.OutfitPiUI.setFramework(fw, $('theme').value, cw);
+      }
+    } catch {}
+  });
+  // Colorway change: immediate, no reload — just flip the body attr.
+  if ($('colorway')) {
+    $('colorway').addEventListener('change', () => {
+      try {
+        if (window.OutfitPiUI && typeof window.OutfitPiUI.setColorway === 'function') {
+          window.OutfitPiUI.setColorway($('colorway').value);
+        }
+      } catch {}
+    });
+  }
   document.querySelector('main.settings-main').addEventListener('input', (e) => {
     // Skip the ZIP lookup field — it triggers via the Look up button.
     if (e.target.id === 'loc-zip' || e.target.id === 'loc-country') return;
@@ -400,7 +626,35 @@
   }
 
   $('redetect').addEventListener('click', async () => {
-    $('loc-display').textContent = 'Re-detecting on next save…';
+    const display = $('loc-display');
+    const prev = display.textContent;
+    display.textContent = 'Re-detecting…';
+    try {
+      const r = await fetch('/api/location/redetect', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken },
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error('Could not detect location');
+      $('loc-lat').value = j.latitude;
+      $('loc-lon').value = j.longitude;
+      // Push freshly-detected coords into the in-memory config and
+      // persist immediately so the rest of the app picks them up.
+      cfg.location.latitude = j.latitude;
+      cfg.location.longitude = j.longitude;
+      cfg.location.auto = true;
+      cfg.location.consent_given = true;
+      const where = [j.city, j.region, j.country].filter(Boolean).join(', ');
+      display.textContent = where
+        ? `${where} (${j.latitude.toFixed(4)}, ${j.longitude.toFixed(4)})`
+        : `${j.latitude.toFixed(4)}, ${j.longitude.toFixed(4)}`;
+      autosave();
+      toast('Location updated');
+    } catch (e) {
+      display.textContent = prev;
+      toast('Re-detect failed: ' + e.message, 'err');
+      reportClientError('redetect', e.message);
+    }
   });
 
   async function lookupZip({ silent = false } = {}) {

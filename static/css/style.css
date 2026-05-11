@@ -17,6 +17,62 @@
   --bottombar-h: 36px;
 }
 
+/* When a non-default colorway is active, redirect --orange (the
+ * native theme's accent) to the chosen color. Default colorway leaves
+ * --orange untouched so today's brand keeps working. */
+body[data-ui-colorway]:not([data-ui-colorway="default"]) {
+  --orange: var(--ui-accent, #FF9F43);
+}
+/* When a non-native framework is active with the default colorway,
+ * follow that framework's documented primary so leftover .ref-item
+ * / .dev-install / button styles don't render brand-orange against
+ * an unrelated palette. Material's --md-sys-color-primary is bound
+ * inside its own components and isn't readable from <body>, so we
+ * hardcode each framework's baseline here. */
+body[data-ui-framework="material"][data-ui-colorway="default"] {
+  --orange: #6750a4; /* Material 3 baseline primary */
+  --ui-accent: #6750a4;
+}
+body[data-ui-framework="fluent"][data-ui-colorway="default"] {
+  --orange: #0078d4; /* Fluent brand */
+  --ui-accent: #0078d4;
+}
+body[data-ui-framework="primer"][data-ui-colorway="default"] {
+  --orange: #1f883d; /* Primer accent green */
+  --ui-accent: #1f883d;
+}
+
+/* Non-native frameworks tone down the kid palette so the dashboard
+ * matches the active design system. Panes become neutral surfaces
+ * tinted from the accent; weather pane keeps a soft accent wash
+ * instead of bright sun-yellow. The native theme is unaffected. */
+body[data-ui-framework="material"],
+body[data-ui-framework="fluent"],
+body[data-ui-framework="primer"] {
+  --grass: color-mix(in srgb, var(--ui-accent, #888) 14%, #f3f3f3);
+  --sun:   color-mix(in srgb, var(--ui-accent, #888)  8%, #ffffff);
+  --sky:   var(--ui-accent, #6750a4);
+  --day-bg: #f7f7f9;
+}
+body[data-ui-framework="material"].night,
+body[data-ui-framework="fluent"].night,
+body[data-ui-framework="primer"].night,
+body[data-ui-framework="material"] .night,
+body[data-ui-framework="fluent"] .night,
+body[data-ui-framework="primer"] .night {
+  --grass: color-mix(in srgb, var(--ui-accent, #888) 22%, #1a1a1f);
+  --sun:   color-mix(in srgb, var(--ui-accent, #888) 18%, #14141a);
+}
+/* Alert banners (rain / stale data) become accent-tinted under
+ * non-native frameworks so they fit the design system instead of
+ * shouting kid-orange against a Material/Fluent/Primer surface. */
+body[data-ui-framework="material"],
+body[data-ui-framework="fluent"],
+body[data-ui-framework="primer"] {
+  --rain:  color-mix(in srgb, var(--ui-accent, #888) 70%, #ffffff);
+  --stale: color-mix(in srgb, var(--ui-accent, #888) 35%, #ffffff);
+}
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -30,6 +86,592 @@ html, body {
 }
 
 body.night { background: var(--night-bg); color: var(--night-fg); }
+
+/* Dark color tokens for themed components. We define these globally
+ * (not gated on the active framework) because the framework attribute
+ * and the actually-rendered components can disagree (e.g. config says
+ * fluent but lingering md-* elements from an earlier render are still
+ * on the page). Without these, components render with their default
+ * light surfaces while inheriting body.night's white text → unreadable. */
+body.night {
+  /* Material 3 baseline dark palette */
+  --md-sys-color-surface: #1c1b1f;
+  --md-sys-color-on-surface: #e6e1e5;
+  --md-sys-color-surface-container: #211f26;
+  --md-sys-color-surface-container-high: #2b2930;
+  --md-sys-color-surface-container-highest: #36343b;
+  --md-sys-color-on-surface-variant: #cac4d0;
+  --md-sys-color-outline: #938f99;
+  --md-sys-color-outline-variant: #49454f;
+  --md-sys-color-background: #141218;
+  --md-sys-color-on-background: #e6e1e5;
+  --md-sys-color-inverse-surface: #e6e1e5;
+  --md-sys-color-inverse-on-surface: #313033;
+  --md-sys-color-primary: #d0bcff;
+  --md-sys-color-on-primary: #381e72;
+  --md-sys-color-primary-container: #4f378b;
+  --md-sys-color-on-primary-container: #eaddff;
+  --md-sys-color-secondary: #ccc2dc;
+  --md-sys-color-on-secondary: #332d41;
+}
+/* Fluent: the host element inherits body.night's white color but the
+ * component's default --neutralForegroundRest is near-black, so labels
+ * and inputs render unreadable. Force white via the design tokens and
+ * shadow parts. */
+body.night fluent-radio,
+body.night fluent-radio-group,
+body.night fluent-switch,
+body.night fluent-option,
+body.night fluent-text-field {
+  color: #ffffff;
+  --neutralForegroundRest: #ffffff;
+  --neutralForegroundHover: #ffffff;
+  --neutralForegroundActive: #ffffff;
+}
+/* Fluent text field's input control has a near-white default
+ * background. Override the fill + control color tokens AND target the
+ * shadow part so the actual <input> inside renders dark. */
+body.night fluent-text-field {
+  --neutralFillInputRest: #2b2930;
+  --neutralFillInputHover: #36343b;
+  --neutralFillInputActive: #211f26;
+  --neutralFillInputFocus: #2b2930;
+  --neutralStrokeInputRest: rgba(255,255,255,0.3);
+  background: transparent;
+}
+body.night fluent-text-field::part(root) {
+  background: #2b2930;
+  border-color: rgba(255,255,255,0.3);
+}
+body.night fluent-text-field::part(control) {
+  color: #ffffff;
+  background: transparent;
+}
+/* fluent-select: dark surface for both the trigger button and the
+ * popup listbox; force opening downward (Fluent's default position
+ * picks "above" when the trigger is in the lower half of the
+ * viewport, which on a kiosk feels backwards). */
+body.night fluent-select {
+  --neutralFillStealthRest: #2b2930;
+  --neutralFillStealthHover: #36343b;
+  --neutralFillStealthActive: #211f26;
+  --neutralFillRest: #2b2930;
+  --neutralFillHover: #36343b;
+  --neutralLayerFloating: #2b2930;
+  color: #ffffff;
+}
+body.night fluent-select::part(control) {
+  background: #2b2930;
+  color: #ffffff;
+  border-color: rgba(255,255,255,0.3);
+}
+body.night fluent-select::part(listbox) {
+  background: #2b2930;
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+body.night fluent-option {
+  background: #2b2930;
+  color: #ffffff;
+  --neutralFillStealthRest: transparent;
+  --neutralFillStealthHover: #3a3842;
+  --neutralFillStealthActive: #4a4852;
+}
+body.night fluent-option:hover,
+body.night fluent-option[aria-selected="true"] {
+  background: #3a3842;
+  color: #ffffff;
+}
+body.night fluent-radio::part(label),
+body.night fluent-switch::part(label),
+body.night fluent-option::part(content),
+body.night fluent-text-field::part(label) {
+  color: #ffffff;
+}
+body.night fluent-button[appearance="outline"]::part(control),
+body.night fluent-button:not([appearance])::part(control) {
+  color: #ffffff;
+  border-color: rgba(255,255,255,0.5);
+  background: transparent;
+}
+body.night fluent-button[appearance="outline"]:hover::part(control),
+body.night fluent-button:not([appearance]):hover::part(control) {
+  background: rgba(255,255,255,0.08);
+}
+
+/* ── Native Fluent surfaces (light + dark) ─────────────────────────
+ * Strip the kid theme's color-mixed accent backgrounds + dashed
+ * accent borders so the rest of the chrome reads as Fluent: flat
+ * neutral surfaces with subtle 1px borders (#edebe9 light,
+ * #3b3a39 dark) and Fluent blue accents only on actual primary
+ * actions. */
+body[data-ui-framework="fluent"] {
+  background: #faf9f8 !important;
+  color: #323130 !important;
+}
+body[data-ui-framework="fluent"].night,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] {
+  background: #1b1a19 !important;
+  color: #f3f2f1 !important;
+}
+body[data-ui-framework="fluent"] .topbar {
+  background: #0078d4 !important;
+  color: #ffffff !important;
+  border-bottom: 1px solid #106ebe;
+}
+body[data-ui-framework="fluent"] fieldset {
+  background: #ffffff;
+  border: 1px solid #edebe9;
+  border-radius: 4px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+body[data-ui-framework="fluent"].night fieldset,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] fieldset {
+  background: #252423;
+  border-color: #3b3a39;
+}
+body[data-ui-framework="fluent"] legend {
+  font-weight: 600;
+  font-size: 14px;
+  padding: 0 8px;
+}
+/* Tighten kid input + button sizing for raw <input>/<button> that
+ * escape enhancement (lat/lon, ref-input). */
+body[data-ui-framework="fluent"] input[type="text"],
+body[data-ui-framework="fluent"] input[type="number"],
+body[data-ui-framework="fluent"] input[type="email"] {
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 2px;
+  border: 1px solid #8a8886;
+  min-height: 32px;
+  max-width: 100%;
+}
+body[data-ui-framework="fluent"].night input[type="text"],
+body[data-ui-framework="fluent"][data-ui-variant="dark"] input[type="text"],
+body[data-ui-framework="fluent"].night input[type="number"],
+body[data-ui-framework="fluent"][data-ui-variant="dark"] input[type="number"],
+body[data-ui-framework="fluent"].night input[type="email"],
+body[data-ui-framework="fluent"][data-ui-variant="dark"] input[type="email"] {
+  background: #1b1a19;
+  color: #f3f2f1;
+  border-color: #605e5c;
+}
+body[data-ui-framework="fluent"] button:not(.icon-btn):not(.comfort-step) {
+  font-size: 14px;
+  padding: 6px 16px;
+  min-height: 32px;
+  font-weight: 600;
+  border-radius: 2px;
+}
+/* Force-install panel: flat Fluent card, not the kid accent box. */
+body[data-ui-framework="fluent"] .dev-install {
+  background: #faf9f8;
+  border: 1px solid #edebe9;
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 8px;
+}
+body[data-ui-framework="fluent"].night .dev-install,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .dev-install {
+  background: #1b1a19;
+  border-color: #3b3a39;
+}
+body[data-ui-framework="fluent"] .ref-list {
+  max-height: 220px;
+  background: #ffffff;
+  border: 1px solid #edebe9;
+  border-radius: 4px;
+  padding: 0;
+}
+body[data-ui-framework="fluent"].night .ref-list,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .ref-list {
+  background: #252423;
+  border-color: #3b3a39;
+}
+body[data-ui-framework="fluent"] .ref-group {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #605e5c;
+  padding: 8px 12px 4px;
+  opacity: 1;
+}
+body[data-ui-framework="fluent"].night .ref-group,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .ref-group {
+  color: #a19f9d;
+}
+body[data-ui-framework="fluent"] .ref-item {
+  padding: 8px 12px;
+  border-radius: 0;
+  min-height: 0;
+}
+body[data-ui-framework="fluent"] .ref-item:hover {
+  background: #f3f2f1;
+}
+body[data-ui-framework="fluent"].night .ref-item:hover,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .ref-item:hover {
+  background: #323130;
+}
+body[data-ui-framework="fluent"] .ref-item.selected {
+  background: #0078d4 !important;
+  color: #ffffff !important;
+}
+body[data-ui-framework="fluent"] .ref-primary {
+  font-size: 14px;
+  font-weight: 500;
+}
+body[data-ui-framework="fluent"] .ref-secondary {
+  font-size: 12px;
+  color: #605e5c;
+}
+body[data-ui-framework="fluent"].night .ref-secondary,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .ref-secondary {
+  color: #a19f9d;
+}
+body[data-ui-framework="fluent"] .ref-item.selected .ref-secondary {
+  color: rgba(255,255,255,0.85);
+}
+/* Tighten kid .big-toggle to a normal Fluent inline checkbox row. */
+body[data-ui-framework="fluent"] .big-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0;
+  margin: 6px 0;
+  min-height: 0;
+  font-size: 14px;
+  font-weight: normal;
+}
+/* Dashboard panes: flat Fluent surfaces, not the kid sun/grass tints. */
+body[data-ui-framework="fluent"] .pane,
+body[data-ui-framework="fluent"] .weather-pane,
+body[data-ui-framework="fluent"] .outfit-pane,
+body[data-ui-framework="fluent"] .outfit-pane.evening {
+  background: #ffffff !important;
+  color: #323130 !important;
+  border: 1px solid #edebe9;
+  border-radius: 4px;
+}
+body[data-ui-framework="fluent"].night .pane,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .pane,
+body[data-ui-framework="fluent"].night .weather-pane,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .weather-pane,
+body[data-ui-framework="fluent"].night .outfit-pane,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .outfit-pane,
+body[data-ui-framework="fluent"].night .outfit-pane.evening,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .outfit-pane.evening {
+  background: #252423 !important;
+  color: #f3f2f1 !important;
+  border-color: #3b3a39;
+}
+body[data-ui-framework="fluent"] .weather-hilo .hi { color: #d13438; }
+body[data-ui-framework="fluent"] .weather-hilo .lo { color: #0078d4; }
+body[data-ui-framework="fluent"].night .weather-hilo .hi,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .weather-hilo .hi {
+  color: #f1707b;
+}
+body[data-ui-framework="fluent"].night .weather-hilo .lo,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .weather-hilo .lo {
+  color: #2899f5;
+}
+body[data-ui-framework="fluent"] .piece {
+  background: #faf9f8;
+  border: 1px solid #edebe9;
+  border-radius: 4px;
+}
+body[data-ui-framework="fluent"].night .piece,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .piece {
+  background: #1b1a19;
+  border-color: #3b3a39;
+}
+body[data-ui-framework="fluent"] .weather-temp,
+body[data-ui-framework="fluent"] .weather-day {
+  font-weight: 600;
+}
+body[data-ui-framework="fluent"] .rain-banner {
+  background: #deecf9;
+  color: #004578;
+  border: 1px solid #c7e0f4;
+  border-radius: 4px;
+  font-weight: 500;
+}
+body[data-ui-framework="fluent"].night .rain-banner,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .rain-banner {
+  background: #062338;
+  color: #2899f5;
+  border-color: #0078d4;
+}
+body[data-ui-framework="fluent"] .stale-banner {
+  background: #fff4ce;
+  color: #8a6d00;
+  border: 1px solid #fae7a3;
+  border-radius: 4px;
+  font-weight: 500;
+}
+body[data-ui-framework="fluent"].night .stale-banner,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .stale-banner {
+  background: #2d2200;
+  color: #ffce5c;
+  border-color: #8a6d00;
+}
+body[data-ui-framework="fluent"] .bottombar {
+  background: transparent;
+  color: #605e5c;
+  border-top: 1px solid #edebe9;
+}
+body[data-ui-framework="fluent"].night .bottombar,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .bottombar {
+  color: #a19f9d;
+  border-top-color: #3b3a39;
+}
+
+/* ── Native Material surfaces (light + dark) ────────────────────────
+ * Match what we did for Fluent + Primer: strip the kid theme's
+ * sky/sun/grass tints so Material renders against neutral Material 3
+ * surfaces. Light uses #fef7ff (M3 surface) / #f7f2fa (container),
+ * dark uses the dark palette already defined globally above. */
+body[data-ui-framework="material"] {
+  background: #fef7ff !important;
+  color: #1d1b20 !important;
+}
+body[data-ui-framework="material"].night,
+body[data-ui-framework="material"][data-ui-variant="dark"] {
+  background: #141218 !important;
+  color: #e6e1e5 !important;
+}
+body[data-ui-framework="material"] .topbar {
+  background: #6750a4 !important;
+  color: #ffffff !important;
+}
+body[data-ui-framework="material"] fieldset {
+  background: #ffffff;
+  border: 1px solid #cac4d0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+body[data-ui-framework="material"].night fieldset,
+body[data-ui-framework="material"][data-ui-variant="dark"] fieldset {
+  background: #211f26;
+  border-color: #49454f;
+}
+body[data-ui-framework="material"] legend {
+  font-weight: 500;
+  font-size: 14px;
+  padding: 0 8px;
+}
+/* Tighten kid input sizing under Material — md-text-field replaces
+ * these for the most part, but the few raw <input>/<select> still on
+ * the page (lat/lon, ref-input) shouldn't be 48px tall. */
+body[data-ui-framework="material"] input[type="text"],
+body[data-ui-framework="material"] input[type="number"],
+body[data-ui-framework="material"] input[type="email"],
+body[data-ui-framework="material"] select {
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid #cac4d0;
+  min-height: 36px;
+  max-width: 100%;
+}
+body[data-ui-framework="material"].night input[type="text"],
+body[data-ui-framework="material"][data-ui-variant="dark"] input[type="text"],
+body[data-ui-framework="material"].night input[type="number"],
+body[data-ui-framework="material"][data-ui-variant="dark"] input[type="number"],
+body[data-ui-framework="material"].night input[type="email"],
+body[data-ui-framework="material"][data-ui-variant="dark"] input[type="email"],
+body[data-ui-framework="material"].night select,
+body[data-ui-framework="material"][data-ui-variant="dark"] select {
+  background: #36343b;
+  color: #e6e1e5;
+  border-color: #49454f;
+}
+/* Tighten native <button>s that escape Material enhancement. */
+body[data-ui-framework="material"] button:not(.icon-btn):not(.comfort-step) {
+  font-size: 14px;
+  padding: 8px 16px;
+  min-height: 36px;
+  font-weight: 500;
+  border-radius: 20px;
+}
+/* Force-install panel + ref list: flat Material card. */
+body[data-ui-framework="material"] .dev-install {
+  background: #f7f2fa;
+  border: 1px solid #cac4d0;
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 8px;
+}
+body[data-ui-framework="material"].night .dev-install,
+body[data-ui-framework="material"][data-ui-variant="dark"] .dev-install {
+  background: #2b2930;
+  border-color: #49454f;
+}
+body[data-ui-framework="material"] .ref-list {
+  max-height: 220px;
+  background: #ffffff;
+  border: 1px solid #cac4d0;
+  border-radius: 4px;
+  padding: 0;
+}
+body[data-ui-framework="material"].night .ref-list,
+body[data-ui-framework="material"][data-ui-variant="dark"] .ref-list {
+  background: #211f26;
+  border-color: #49454f;
+}
+body[data-ui-framework="material"] .ref-group {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #49454f;
+  padding: 8px 12px 4px;
+  opacity: 1;
+}
+body[data-ui-framework="material"].night .ref-group,
+body[data-ui-framework="material"][data-ui-variant="dark"] .ref-group {
+  color: #cac4d0;
+}
+body[data-ui-framework="material"] .ref-item {
+  padding: 8px 12px;
+  border-radius: 0;
+  min-height: 0;
+}
+body[data-ui-framework="material"] .ref-item:hover {
+  background: #f7f2fa;
+}
+body[data-ui-framework="material"].night .ref-item:hover,
+body[data-ui-framework="material"][data-ui-variant="dark"] .ref-item:hover {
+  background: #2b2930;
+}
+body[data-ui-framework="material"] .ref-item.selected {
+  background: #6750a4 !important;
+  color: #ffffff !important;
+}
+body[data-ui-framework="material"].night .ref-item.selected,
+body[data-ui-framework="material"][data-ui-variant="dark"] .ref-item.selected {
+  background: #d0bcff !important;
+  color: #381e72 !important;
+}
+body[data-ui-framework="material"] .ref-primary {
+  font-size: 14px;
+  font-weight: 500;
+}
+body[data-ui-framework="material"] .ref-secondary {
+  font-size: 12px;
+  color: #49454f;
+}
+body[data-ui-framework="material"].night .ref-secondary,
+body[data-ui-framework="material"][data-ui-variant="dark"] .ref-secondary {
+  color: #cac4d0;
+}
+body[data-ui-framework="material"] .ref-item.selected .ref-secondary {
+  color: rgba(255,255,255,0.85);
+}
+body[data-ui-framework="material"].night .ref-item.selected .ref-secondary,
+body[data-ui-framework="material"][data-ui-variant="dark"] .ref-item.selected .ref-secondary {
+  color: rgba(56,30,114,0.85);
+}
+/* .big-toggle → tight inline checkbox row. */
+body[data-ui-framework="material"] .big-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0;
+  margin: 6px 0;
+  min-height: 0;
+  font-size: 14px;
+  font-weight: normal;
+}
+/* Dashboard panes: flat Material surfaces, no kid sun/grass. */
+body[data-ui-framework="material"] .pane,
+body[data-ui-framework="material"] .weather-pane,
+body[data-ui-framework="material"] .outfit-pane,
+body[data-ui-framework="material"] .outfit-pane.evening {
+  background: #ffffff !important;
+  color: #1d1b20 !important;
+  border: 1px solid #cac4d0;
+  border-radius: 12px;
+}
+body[data-ui-framework="material"].night .pane,
+body[data-ui-framework="material"][data-ui-variant="dark"] .pane,
+body[data-ui-framework="material"].night .weather-pane,
+body[data-ui-framework="material"][data-ui-variant="dark"] .weather-pane,
+body[data-ui-framework="material"].night .outfit-pane,
+body[data-ui-framework="material"][data-ui-variant="dark"] .outfit-pane,
+body[data-ui-framework="material"].night .outfit-pane.evening,
+body[data-ui-framework="material"][data-ui-variant="dark"] .outfit-pane.evening {
+  background: #211f26 !important;
+  color: #e6e1e5 !important;
+  border-color: #49454f;
+}
+body[data-ui-framework="material"] .weather-hilo .hi { color: #ba1a1a; }
+body[data-ui-framework="material"] .weather-hilo .lo { color: #6750a4; }
+body[data-ui-framework="material"].night .weather-hilo .hi,
+body[data-ui-framework="material"][data-ui-variant="dark"] .weather-hilo .hi {
+  color: #ffb4ab;
+}
+body[data-ui-framework="material"].night .weather-hilo .lo,
+body[data-ui-framework="material"][data-ui-variant="dark"] .weather-hilo .lo {
+  color: #d0bcff;
+}
+body[data-ui-framework="material"] .piece {
+  background: #f7f2fa;
+  border: 1px solid #cac4d0;
+  border-radius: 8px;
+}
+body[data-ui-framework="material"].night .piece,
+body[data-ui-framework="material"][data-ui-variant="dark"] .piece {
+  background: #2b2930;
+  border-color: #49454f;
+}
+body[data-ui-framework="material"] .weather-temp,
+body[data-ui-framework="material"] .weather-day {
+  font-weight: 500;
+}
+body[data-ui-framework="material"] .rain-banner {
+  background: #eaddff;
+  color: #21005d;
+  border: 1px solid #d0bcff;
+  border-radius: 12px;
+  font-weight: 500;
+}
+body[data-ui-framework="material"].night .rain-banner,
+body[data-ui-framework="material"][data-ui-variant="dark"] .rain-banner {
+  background: #4f378b;
+  color: #eaddff;
+  border-color: #7c5cd0;
+}
+body[data-ui-framework="material"] .stale-banner {
+  background: #ffdad6;
+  color: #410002;
+  border: 1px solid #ffb4ab;
+  border-radius: 12px;
+  font-weight: 500;
+}
+body[data-ui-framework="material"].night .stale-banner,
+body[data-ui-framework="material"][data-ui-variant="dark"] .stale-banner {
+  background: #93000a;
+  color: #ffdad6;
+  border-color: #ba1a1a;
+}
+body[data-ui-framework="material"] .bottombar {
+  background: transparent;
+  color: #49454f;
+  border-top: 1px solid #cac4d0;
+}
+body[data-ui-framework="material"].night .bottombar,
+body[data-ui-framework="material"][data-ui-variant="dark"] .bottombar {
+  color: #cac4d0;
+  border-top-color: #49454f;
+}
 
 /* Dashboard pages: lock to viewport, no scrollbars. */
 body:not(.settings-page):not(.setup) {
@@ -83,14 +725,34 @@ body.setup textarea {
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  background: var(--sky);
-  color: #fff;
+  /* Brand surface: picks up active colorway accent when set, falls
+   * back to kid sky-blue. Theme-aware via --ui-accent which each
+   * framework remaps to its own primary in default colorway. */
+  background: var(--ui-accent, var(--sky));
+  color: var(--ui-accent-on, #fff);
   height: var(--topbar-h);
 }
-body.night .topbar { background: #1a2a52; }
+body.night .topbar {
+  background: color-mix(in srgb, var(--ui-accent, #1a2a52) 70%, #0b1230);
+  color: var(--ui-accent-on, #fff);
+}
 
 .brand { font-size: 1.4rem; margin: 0; font-weight: 700; }
 .version { opacity: 0.8; font-size: 0.9rem; }
+
+.dev-build-badge {
+  margin-left: 10px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  background: rgba(255, 255, 255, 0.2);
+  color: inherit;
+  border-radius: 999px;
+  vertical-align: middle;
+  letter-spacing: 0.3px;
+}
+body.night .dev-build-badge { background: rgba(255, 255, 255, 0.15); }
 
 .icon-btn {
   display: inline-flex;
@@ -152,20 +814,20 @@ body.night .pane { background: #2d4a2a; color: #e8f5e0; }
 
 .weather-pane { background: var(--sun); color: #1B2233; }
 body.night .weather-pane { background: #2a3a72; color: var(--night-fg); }
-.weather-icon {
-  width: clamp(60px, 16vh, 140px);
-  height: clamp(60px, 16vh, 140px);
-}
+.weather-icon { width: clamp(60px, 16vh, 140px); height: clamp(60px, 16vh, 140px); }
 .weather-icon svg { width: 100%; height: 100%; }
+.weather-day { font-size: clamp(1.4rem, 4.5vh, 2.4rem); font-weight: 800; line-height: 1; margin-top: 4px; }
 .weather-temp { font-size: clamp(2rem, 7vh, 4rem); font-weight: 800; line-height: 1; }
 .weather-feels { font-size: 1rem; opacity: 0.85; margin-top: 2px; }
 .weather-desc { font-size: 1.1rem; opacity: 0.85; margin-top: 4px; }
+.weather-afternoon { font-size: 1rem; opacity: 0.9; margin-top: 6px; font-weight: 600; }
+.weather-now { font-size: 0.9rem; opacity: 0.7; margin-top: 8px; }
 .weather-hilo {
   margin-top: 8px;
   display: flex;
   gap: 16px;
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: clamp(1.2rem, 3.5vh, 1.8rem);
 }
 .weather-hilo .hi { color: #c0392b; }
 .weather-hilo .lo { color: #2980b9; }
@@ -298,7 +960,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .dev-install {
   margin-top: 12px;
   padding: 10px 12px;
-  background: rgba(255,159,67,0.12);
+  /* Use the active accent (--orange is already redirected per framework
+   * + colorway) so the panel matches whatever palette is in effect. */
+  background: color-mix(in srgb, var(--orange) 12%, transparent);
   border: 1px dashed var(--orange);
   border-radius: var(--radius);
   display: flex;
@@ -337,7 +1001,9 @@ body.night .ref-list { background: #1f2a44; border-color: #344066; }
   justify-content: center;
 }
 .ref-item + .ref-item { margin-top: 2px; }
-.ref-item:active { background: rgba(255,159,67,0.18); }
+.ref-item:active {
+  background: color-mix(in srgb, var(--orange) 18%, transparent);
+}
 .ref-item.selected { background: var(--orange); color: #fff; }
 .ref-primary { font-weight: 600; font-size: 0.95rem; }
 .ref-secondary { font-size: 0.78rem; opacity: 0.75; margin-top: 2px; }
@@ -355,11 +1021,92 @@ legend { font-weight: 700; padding: 0 8px; }
 
 .child-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
-  gap: 8px;
+  grid-template-columns: minmax(120px, 1fr) auto auto;
+  grid-template-areas:
+    "name gender remove"
+    "comfort comfort comfort";
+  gap: 12px;
   align-items: center;
-  padding: 8px 0;
+  padding: 16px 0;
   border-bottom: 1px solid #e8eef5;
+}
+.child-row + .child-row { padding-top: 16px; }
+.child-row:last-of-type { border-bottom: none; }
+.child-row > input[type="text"] { grid-area: name; }
+.child-row > select { grid-area: gender; }
+.child-row > button.danger { grid-area: remove; }
+.child-row > label { grid-area: comfort; touch-action: pan-x; }
+
+/* Comfort offset slider — touch-friendly with step buttons. */
+.comfort-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  /* Children inside (slider thumb) need horizontal pan; parent <main>
+     declares pan-y which would otherwise win. */
+  touch-action: pan-x;
+}
+.comfort-step {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  border-radius: 50%;
+  background: var(--orange);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+}
+.comfort-step:active { background: #e07a1c; }
+.comfort-slider {
+  flex: 1 1 auto;
+  height: 44px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  /* Browser owns horizontal drag for the slider; pan-y was inherited
+     from <main>. 'manipulation' disables double-tap zoom too. */
+  touch-action: manipulation;
+}
+.comfort-slider:focus { outline: none; }
+.comfort-slider::-webkit-slider-runnable-track {
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #88c5ff 0%, #d0d7e2 50%, #ff8a7a 100%);
+}
+.comfort-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--orange);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  margin-top: -13px;
+  cursor: pointer;
+}
+.comfort-slider::-moz-range-track {
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #88c5ff 0%, #d0d7e2 50%, #ff8a7a 100%);
+}
+.comfort-slider::-moz-range-thumb {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--orange);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  cursor: pointer;
 }
 
 /* Keyboard */

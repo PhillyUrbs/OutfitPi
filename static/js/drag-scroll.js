@@ -15,6 +15,15 @@
     let suppressClickUntil = 0;
 
     el.addEventListener('pointerdown', (e) => {
+      // Skip the drag-scroll handler entirely when the gesture starts on
+      // a control that owns its own horizontal input (range slider, web-
+      // component slider, etc.). Vertical-drag detection alone wasn't
+      // enough because the handler had already attached and was eating
+      // the slider's own pointermove.
+      if (e.target.closest(
+        'input[type="range"], input[type="color"],' +
+        ' md-slider, fluent-slider, [data-ui-slider]'
+      )) return;
       activeId = e.pointerId;
       startX = e.clientX;
       startY = e.clientY;

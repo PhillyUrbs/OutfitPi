@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from .config_manager import Child, Thresholds, c_to_f
-from .weather import CurrentWeather
+from .weather import RAIN_CODES, SNOW_CODES, CurrentWeather
 
 
 @dataclass
@@ -17,34 +17,82 @@ class OutfitRecommendation:
     bottom: str
     top_icon: str
     bottom_icon: str
-    layer: str | None = None  # e.g. "Jacket"
+    layer: str | None = None  # deprecated; reserved for backward compat
     layer_icon: str | None = None
-    tier_name: str = "cool"  # "hot" | "warm" | "cool" | "cold" | "pajamas"
+    tier_name: str = "cool"  # combined tier used by dashboard for theming
+    top_tier: str = "cool"   # "hot" | "warm" | "cool" | "cold"
+    bottom_tier: str = "cool"
     rain_alert: str | None = None
     reason: str = ""
     unavailable: bool = False
     is_evening: bool = False
 
 
-# (top, bottom, top_icon, bottom_icon)
-_OUTFITS: dict[tuple[str, str], tuple[str, str, str, str]] = {
-    ("hot", "boy"): ("T-shirt", "Shorts", "t-shirt", "shorts"),
-    ("hot", "girl"): ("T-shirt", "Dress", "t-shirt", "dress"),
-    ("warm", "boy"): ("T-shirt", "Shorts", "t-shirt", "shorts"),
-    ("warm", "girl"): ("T-shirt", "Leggings", "t-shirt", "leggings"),
-    ("cool", "boy"): ("Long sleeves", "Pants", "long-sleeve-shirt", "pants"),
-    ("cool", "girl"): ("Long sleeves", "Leggings", "long-sleeve-shirt", "leggings"),
-    ("cold", "boy"): ("Long sleeves", "Warm pants", "long-sleeve-shirt", "pants"),
-    ("cold", "girl"): ("Long sleeves", "Warm pants", "long-sleeve-shirt", "pants"),
-}
-
-
 # Evening hours: bedtime guidance instead of outfit.
 EVENING_HOUR = 19  # 7 PM
 MORNING_HOUR = 6   # before 6 AM also counts as "still bedtime"
 
+# Independent ladders so a kid can end up in T-shirt + Pants on borderline
+# days. Legs run cooler than torsos, so the bottom ladder shifts ~5°F warmer.
+TOP_OFFSET_F = -5.0     # tops switch to long-sleeve sooner than legs to pants
+BOTTOM_OFFSET_F = 5.0   # bottoms warm up earlier than tops cool down
+
+
+def _top_tier(effective_f: float, thresholds: Thresholds) -> str:
+    """Sleeve-length tier. Long-sleeves kick in around `cool + TOP_OFFSET_F`
+    so the borderline T-shirt + Pants combo is reachable."""
+    if effective_f >= thresholds.hot:
+        return "hot"
+    if effective_f >= thresholds.warm:
+        return "warm"
+    if effective_f >= thresholds.cool + TOP_OFFSET_F:
+        return "cool"   # still T-shirt
+    return "cold"       # long-sleeve
+
+
+def _bottom_tier(effective_f: float, thresholds: Thresholds) -> str:
+    """Leg-coverage tier. Bottoms switch to long pants ~5°F earlier than
+    tops switch to long sleeves."""
+    if effective_f >= thresholds.hot:
+        return "hot"
+    if effective_f >= thresholds.warm + BOTTOM_OFFSET_F:
+        return "warm"
+    if effective_f >= thresholds.cool + BOTTOM_OFFSET_F:
+        return "cool"
+    return "cold"
+
+
+_TOPS: dict[str, tuple[str, str]] = {
+    "hot":  ("T-shirt", "t-shirt"),
+    "warm": ("T-shirt", "t-shirt"),
+    "cool": ("T-shirt", "t-shirt"),
+    "cold": ("Long sleeves", "long-sleeve-shirt"),
+}
+
+_BOTTOMS: dict[tuple[str, str], tuple[str, str]] = {
+    ("hot", "boy"):   ("Shorts", "shorts"),
+    ("hot", "girl"):  ("Dress", "dress"),
+    ("warm", "boy"):  ("Shorts", "shorts"),
+    ("warm", "girl"): ("Leggings", "leggings"),
+    ("cool", "boy"):  ("Pants", "pants"),
+    ("cool", "girl"): ("Leggings", "leggings"),
+    ("cold", "boy"):  ("Warm pants", "pants"),
+    ("cold", "girl"): ("Warm pants", "pants"),
+}
+
+
+# Order from coolest to warmest for tier-name combination.
+_TIER_RANK = {"hot": 3, "warm": 2, "cool": 1, "cold": 0}
+
+
+def _combined_tier(top_t: str, bottom_t: str) -> str:
+    """Pick the cooler of the two tiers for dashboard color theming."""
+    return top_t if _TIER_RANK[top_t] <= _TIER_RANK[bottom_t] else bottom_t
+
 
 def _tier(effective_f: float, thresholds: Thresholds) -> str:
+    """Legacy single-ladder tier; kept so existing tests + telemetry tags
+    that reference 'tier' still resolve."""
     if effective_f >= thresholds.hot:
         return "hot"
     if effective_f >= thresholds.warm:
@@ -124,9 +172,13 @@ def recommend_outfit(
             is_evening=True,
         )
 
-    # Use the day's apparent peak temperature for outfit choice (so kids dress
-    # for the warmest part of the day, not the chilly morning).
-    if weather.apparent_max is not None:
+    # Drive base-layer recommendations from the afternoon outdoor window
+    # (12:00–17:00). Coats and jackets are decided at the door, so we only
+    # output top + bottom here.
+    forecast_label = "this afternoon feels like"
+    if weather.apparent_afternoon is not None:
+        forecast_f = _to_fahrenheit(weather.apparent_afternoon, weather.units_temperature)
+    elif weather.apparent_max is not None:
         forecast_f = _to_fahrenheit(weather.apparent_max, weather.units_temperature)
         forecast_label = "today's high feels like"
     else:
@@ -134,35 +186,32 @@ def recommend_outfit(
         forecast_label = "it feels like"
 
     effective_f = forecast_f + child.comfort_offset_f
-    tier = _tier(effective_f, thresholds)
-    top, bottom, top_icon, bottom_icon = _OUTFITS[(tier, child.gender)]
+    top_t = _top_tier(effective_f, thresholds)
+    bottom_t = _bottom_tier(effective_f, thresholds)
+    tier = _combined_tier(top_t, bottom_t)
+    top, top_icon = _TOPS[top_t]
+    bottom, bottom_icon = _BOTTOMS[(bottom_t, child.gender)]
 
-    # Add a jacket layer when cold or when morning low is much cooler than day high.
-    layer: str | None = None
-    layer_icon: str | None = None
-    if tier == "cold":
-        layer, layer_icon = "Jacket", "jacket"
-    elif weather.apparent_min is not None:
-        morning_f = _to_fahrenheit(weather.apparent_min, weather.units_temperature) + child.comfort_offset_f
-        if morning_f < thresholds.cool:
-            layer, layer_icon = "Light jacket", "jacket"
-
-    rain_alert = None
-    if weather.is_raining:
-        rain_alert = "Rain expected — grab a raincoat and rain boots!"
-    elif weather.is_snowing:
-        rain_alert = "Snow expected — bundle up and wear snow boots!"
+    # Precipitation hint shown alongside the forecast (no accessories
+    # recommendation; that's a door-decision).
+    precip_alert: str | None = None
+    aft_code = weather.afternoon_weather_code
+    if aft_code in SNOW_CODES or weather.is_snowing:
+        precip_alert = "Snow expected this afternoon."
+    elif aft_code in RAIN_CODES or weather.is_raining:
+        precip_alert = "Rain expected this afternoon."
     elif weather.precip_probability_max and weather.precip_probability_max >= 50:
-        rain_alert = f"Chance of rain ({int(weather.precip_probability_max)}%) — pack a raincoat just in case."
+        precip_alert = f"Chance of precipitation ({int(weather.precip_probability_max)}%)."
 
     feels_str = _format_temp(forecast_f, display_unit)
     name = child.name
-    tier_phrase = {
-        "hot": f"shorts and a t-shirt day, {name}!" if child.gender == "boy" else f"a sundress day, {name}!",
-        "warm": f"t-shirt and shorts for you, {name}!" if child.gender == "boy" else f"leggings and a t-shirt for you, {name}!",
-        "cool": f"long sleeves and pants today, {name}!" if child.gender == "boy" else f"long sleeves and leggings today, {name}!",
-        "cold": f"warm pants and a jacket, {name} — it's chilly!",
-    }[tier]
+    # Phrase reads off the actual top + bottom chosen, so split-tier days
+    # (e.g. T-shirt + Pants) get a sensible sentence.
+    tier_phrase = f"{top.lower()} and {bottom.lower()} for you, {name}!"
+    if tier == "cold":
+        tier_phrase = f"long sleeves and warm pants, {name} — it's chilly!"
+    elif tier == "hot" and child.gender == "girl" and bottom_t == "hot":
+        tier_phrase = f"a sundress day, {name}!"
 
     reason = f"{forecast_label.capitalize()} {feels_str} — {tier_phrase}"
     if weather.stale:
@@ -174,10 +223,10 @@ def recommend_outfit(
         bottom=bottom,
         top_icon=top_icon,
         bottom_icon=bottom_icon,
-        layer=layer,
-        layer_icon=layer_icon,
         tier_name=tier,
-        rain_alert=rain_alert,
+        top_tier=top_t,
+        bottom_tier=bottom_t,
+        rain_alert=precip_alert,
         reason=reason,
         unavailable=False,
     )

@@ -76,15 +76,25 @@
   function weatherPaneHTML(w) {
     const high = fmtTemp(w.temp_max, w.units_temperature);
     const low = fmtTemp(w.temp_min, w.units_temperature);
+    // Prefer the afternoon forecast (kids' outdoor window) for the big icon
+    // and description; fall back to the daily summary, then "now".
+    const dayIcon = w.afternoon_icon || w.daily_icon || w.icon;
+    const dayDesc = w.afternoon_description || w.daily_description || w.description;
+    const aft = (w.apparent_afternoon != null)
+      ? `<div class="weather-afternoon">Afternoon: ${fmtTemp(w.apparent_afternoon, w.units_temperature)}</div>`
+      : '';
     return `
       <section class="pane weather-pane">
-        <div class="weather-icon">${icon(w.icon)}</div>
-        <div class="weather-temp">${fmtTemp(w.temperature, w.units_temperature)}</div>
-        <div class="weather-feels">Feels like ${fmtTemp(w.apparent_temperature, w.units_temperature)}</div>
-        <div class="weather-desc">${w.description}</div>
+        <div class="weather-icon">${icon(dayIcon)}</div>
+        <div class="weather-day">Today</div>
         <div class="weather-hilo">
           <span class="hi">↑ ${high}</span>
           <span class="lo">↓ ${low}</span>
+        </div>
+        <div class="weather-desc">${dayDesc}</div>
+        ${aft}
+        <div class="weather-now">
+          Now ${fmtTemp(w.temperature, w.units_temperature)} · feels ${fmtTemp(w.apparent_temperature, w.units_temperature)}
         </div>
       </section>`;
   }
@@ -103,16 +113,12 @@
           <p class="reason">${r.reason}</p>
         </section>`;
     }
-    const layer = r.layer
-      ? `<div class="piece">${icon(r.layer_icon)}<div class="piece-label">${r.layer}</div></div>`
-      : '';
     return `
       <section class="pane outfit-pane tier-${r.tier_name}">
         <h2>${r.child_name}</h2>
         <div class="outfit-pieces">
           <div class="piece">${icon(r.top_icon)}<div class="piece-label">${r.top}</div></div>
           <div class="piece">${icon(r.bottom_icon)}<div class="piece-label">${r.bottom}</div></div>
-          ${layer}
         </div>
         <p class="reason">${r.reason}</p>
       </section>`;
@@ -207,6 +213,31 @@
       }
     } catch {}
   }
+
+  // Track server identity so we can hot-reload after a restart (which
+  // also invalidates any in-page CSRF token) or after a dev-channel
+  // rebuild that doesn't bump __version__.
+  // The reload itself is handled by static/js/auto-reload.js (shared
+  // with settings/setup); this just renders the version+sha pill in
+  // the topbar on first health response when a SHA is present.
+  async function renderDevBuildBadge() {
+    try {
+      const r = await fetch('/api/health', { cache: 'no-store' });
+      if (!r.ok) return;
+      const j = await r.json();
+      if (!j.sha) return;
+      const brand = document.querySelector('.brand');
+      if (brand && !document.getElementById('dev-build-badge')) {
+        const tag = document.createElement('span');
+        tag.id = 'dev-build-badge';
+        tag.className = 'dev-build-badge';
+        tag.textContent = `${j.version}+${j.sha}`;
+        tag.title = `Build ${j.version} (${j.sha})`;
+        brand.after(tag);
+      }
+    } catch {}
+  }
+  setTimeout(renderDevBuildBadge, 1500);
 
   setInterval(checkUpdate, 5 * 60 * 1000);
 

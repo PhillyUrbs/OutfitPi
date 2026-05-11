@@ -37,13 +37,21 @@
   }, 5 * 60 * 1000);
 
   // Sync from server settings once available.
+  // Allowlist of valid theme tokens — used to sanitize values from the
+  // server config before they reach localStorage. CodeQL flagged the
+  // raw cfg-derived path as 'sensitive data in clear text' because the
+  // settings response also contains latitude/longitude; explicit
+  // validation breaks the taint flow.
+  const VALID = new Set(['auto', 'day', 'night', 'light', 'dark']);
   window.OutfitPiTheme = {
     set(pref) {
-      localStorage.setItem(KEY, pref);
-      apply(pref);
+      const safe = VALID.has(pref) ? pref : 'auto';
+      localStorage.setItem(KEY, safe);
+      apply(safe);
     },
     syncFromConfig(cfg) {
-      const pref = (cfg && cfg.display && cfg.display.theme) || 'auto';
+      const raw = cfg && cfg.display && cfg.display.theme;
+      const pref = typeof raw === 'string' && VALID.has(raw) ? raw : 'auto';
       this.set(pref);
     },
   };
