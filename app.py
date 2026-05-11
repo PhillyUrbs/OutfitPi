@@ -382,7 +382,9 @@ def create_app(config_path: Path | None = None) -> Flask:
         tag = str(body.get("tag") or "trace")[:40]
         tag = tag.replace("\r", "").replace("\n", "")
         data = body.get("data")
-        logger.info("CLIENT-TRACE [%s] %s", tag, data)
+        safe_tag = tag.replace("\r", "").replace("\n", "")
+        safe_data = str(data).replace("\r", "").replace("\n", "")
+        logger.info("CLIENT-TRACE [%s] %s", safe_tag, safe_data)
         return jsonify({"ok": True})
 
     @app.get("/api/settings")
