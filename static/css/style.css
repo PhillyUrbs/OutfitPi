@@ -199,6 +199,208 @@ body.night fluent-button:not([appearance]):hover::part(control) {
   background: rgba(255,255,255,0.08);
 }
 
+/* ── Native Fluent surfaces (light + dark) ─────────────────────────
+ * Strip the kid theme's color-mixed accent backgrounds + dashed
+ * accent borders so the rest of the chrome reads as Fluent: flat
+ * neutral surfaces with subtle 1px borders (#edebe9 light,
+ * #3b3a39 dark) and Fluent blue accents only on actual primary
+ * actions. */
+body[data-ui-framework="fluent"] {
+  background: #faf9f8 !important;
+  color: #323130 !important;
+}
+body[data-ui-framework="fluent"].night,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] {
+  background: #1b1a19 !important;
+  color: #f3f2f1 !important;
+}
+body[data-ui-framework="fluent"] .topbar {
+  background: #0078d4 !important;
+  color: #ffffff !important;
+  border-bottom: 1px solid #106ebe;
+}
+body[data-ui-framework="fluent"] fieldset {
+  background: #ffffff;
+  border: 1px solid #edebe9;
+  border-radius: 4px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+body[data-ui-framework="fluent"].night fieldset,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] fieldset {
+  background: #252423;
+  border-color: #3b3a39;
+}
+body[data-ui-framework="fluent"] legend {
+  font-weight: 600;
+  font-size: 14px;
+  padding: 0 8px;
+}
+/* Force-install panel: flat Fluent card, not the kid accent box. */
+body[data-ui-framework="fluent"] .dev-install {
+  background: #faf9f8;
+  border: 1px solid #edebe9;
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 8px;
+}
+body[data-ui-framework="fluent"].night .dev-install,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .dev-install {
+  background: #1b1a19;
+  border-color: #3b3a39;
+}
+body[data-ui-framework="fluent"] .ref-list {
+  max-height: 220px;
+  background: #ffffff;
+  border: 1px solid #edebe9;
+  border-radius: 4px;
+  padding: 0;
+}
+body[data-ui-framework="fluent"].night .ref-list,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .ref-list {
+  background: #252423;
+  border-color: #3b3a39;
+}
+body[data-ui-framework="fluent"] .ref-group {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #605e5c;
+  padding: 8px 12px 4px;
+  opacity: 1;
+}
+body[data-ui-framework="fluent"].night .ref-group,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .ref-group {
+  color: #a19f9d;
+}
+body[data-ui-framework="fluent"] .ref-item {
+  padding: 8px 12px;
+  border-radius: 0;
+  min-height: 0;
+}
+body[data-ui-framework="fluent"] .ref-item:hover {
+  background: #f3f2f1;
+}
+body[data-ui-framework="fluent"].night .ref-item:hover,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .ref-item:hover {
+  background: #323130;
+}
+body[data-ui-framework="fluent"] .ref-item.selected {
+  background: #0078d4 !important;
+  color: #ffffff !important;
+}
+body[data-ui-framework="fluent"] .ref-primary {
+  font-size: 14px;
+  font-weight: 500;
+}
+body[data-ui-framework="fluent"] .ref-secondary {
+  font-size: 12px;
+  color: #605e5c;
+}
+body[data-ui-framework="fluent"].night .ref-secondary,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .ref-secondary {
+  color: #a19f9d;
+}
+body[data-ui-framework="fluent"] .ref-item.selected .ref-secondary {
+  color: rgba(255,255,255,0.85);
+}
+/* Tighten kid .big-toggle to a normal Fluent inline checkbox row. */
+body[data-ui-framework="fluent"] .big-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0;
+  margin: 6px 0;
+  min-height: 0;
+  font-size: 14px;
+  font-weight: normal;
+}
+/* Dashboard panes: flat Fluent surfaces, not the kid sun/grass tints. */
+body[data-ui-framework="fluent"] .pane,
+body[data-ui-framework="fluent"] .weather-pane,
+body[data-ui-framework="fluent"] .outfit-pane,
+body[data-ui-framework="fluent"] .outfit-pane.evening {
+  background: #ffffff !important;
+  color: #323130 !important;
+  border: 1px solid #edebe9;
+  border-radius: 4px;
+}
+body[data-ui-framework="fluent"].night .pane,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .pane,
+body[data-ui-framework="fluent"].night .weather-pane,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .weather-pane,
+body[data-ui-framework="fluent"].night .outfit-pane,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .outfit-pane,
+body[data-ui-framework="fluent"].night .outfit-pane.evening,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .outfit-pane.evening {
+  background: #252423 !important;
+  color: #f3f2f1 !important;
+  border-color: #3b3a39;
+}
+body[data-ui-framework="fluent"] .weather-hilo .hi { color: #d13438; }
+body[data-ui-framework="fluent"] .weather-hilo .lo { color: #0078d4; }
+body[data-ui-framework="fluent"].night .weather-hilo .hi,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .weather-hilo .hi {
+  color: #f1707b;
+}
+body[data-ui-framework="fluent"].night .weather-hilo .lo,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .weather-hilo .lo {
+  color: #2899f5;
+}
+body[data-ui-framework="fluent"] .piece {
+  background: #faf9f8;
+  border: 1px solid #edebe9;
+  border-radius: 4px;
+}
+body[data-ui-framework="fluent"].night .piece,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .piece {
+  background: #1b1a19;
+  border-color: #3b3a39;
+}
+body[data-ui-framework="fluent"] .weather-temp,
+body[data-ui-framework="fluent"] .weather-day {
+  font-weight: 600;
+}
+body[data-ui-framework="fluent"] .rain-banner {
+  background: #deecf9;
+  color: #004578;
+  border: 1px solid #c7e0f4;
+  border-radius: 4px;
+  font-weight: 500;
+}
+body[data-ui-framework="fluent"].night .rain-banner,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .rain-banner {
+  background: #062338;
+  color: #2899f5;
+  border-color: #0078d4;
+}
+body[data-ui-framework="fluent"] .stale-banner {
+  background: #fff4ce;
+  color: #8a6d00;
+  border: 1px solid #fae7a3;
+  border-radius: 4px;
+  font-weight: 500;
+}
+body[data-ui-framework="fluent"].night .stale-banner,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .stale-banner {
+  background: #2d2200;
+  color: #ffce5c;
+  border-color: #8a6d00;
+}
+body[data-ui-framework="fluent"] .bottombar {
+  background: transparent;
+  color: #605e5c;
+  border-top: 1px solid #edebe9;
+}
+body[data-ui-framework="fluent"].night .bottombar,
+body[data-ui-framework="fluent"][data-ui-variant="dark"] .bottombar {
+  color: #a19f9d;
+  border-top-color: #3b3a39;
+}
+
 /* Dashboard pages: lock to viewport, no scrollbars. */
 body:not(.settings-page):not(.setup) {
   height: 100vh;
