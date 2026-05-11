@@ -236,6 +236,35 @@ body[data-ui-framework="fluent"] legend {
   font-size: 14px;
   padding: 0 8px;
 }
+/* Tighten kid input + button sizing for raw <input>/<button> that
+ * escape enhancement (lat/lon, ref-input). */
+body[data-ui-framework="fluent"] input[type="text"],
+body[data-ui-framework="fluent"] input[type="number"],
+body[data-ui-framework="fluent"] input[type="email"] {
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 2px;
+  border: 1px solid #8a8886;
+  min-height: 32px;
+  max-width: 100%;
+}
+body[data-ui-framework="fluent"].night input[type="text"],
+body[data-ui-framework="fluent"][data-ui-variant="dark"] input[type="text"],
+body[data-ui-framework="fluent"].night input[type="number"],
+body[data-ui-framework="fluent"][data-ui-variant="dark"] input[type="number"],
+body[data-ui-framework="fluent"].night input[type="email"],
+body[data-ui-framework="fluent"][data-ui-variant="dark"] input[type="email"] {
+  background: #1b1a19;
+  color: #f3f2f1;
+  border-color: #605e5c;
+}
+body[data-ui-framework="fluent"] button:not(.icon-btn):not(.comfort-step) {
+  font-size: 14px;
+  padding: 6px 16px;
+  min-height: 32px;
+  font-weight: 600;
+  border-radius: 2px;
+}
 /* Force-install panel: flat Fluent card, not the kid accent box. */
 body[data-ui-framework="fluent"] .dev-install {
   background: #faf9f8;
@@ -399,6 +428,249 @@ body[data-ui-framework="fluent"].night .bottombar,
 body[data-ui-framework="fluent"][data-ui-variant="dark"] .bottombar {
   color: #a19f9d;
   border-top-color: #3b3a39;
+}
+
+/* ── Native Material surfaces (light + dark) ────────────────────────
+ * Match what we did for Fluent + Primer: strip the kid theme's
+ * sky/sun/grass tints so Material renders against neutral Material 3
+ * surfaces. Light uses #fef7ff (M3 surface) / #f7f2fa (container),
+ * dark uses the dark palette already defined globally above. */
+body[data-ui-framework="material"] {
+  background: #fef7ff !important;
+  color: #1d1b20 !important;
+}
+body[data-ui-framework="material"].night,
+body[data-ui-framework="material"][data-ui-variant="dark"] {
+  background: #141218 !important;
+  color: #e6e1e5 !important;
+}
+body[data-ui-framework="material"] .topbar {
+  background: #6750a4 !important;
+  color: #ffffff !important;
+}
+body[data-ui-framework="material"] fieldset {
+  background: #ffffff;
+  border: 1px solid #cac4d0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+body[data-ui-framework="material"].night fieldset,
+body[data-ui-framework="material"][data-ui-variant="dark"] fieldset {
+  background: #211f26;
+  border-color: #49454f;
+}
+body[data-ui-framework="material"] legend {
+  font-weight: 500;
+  font-size: 14px;
+  padding: 0 8px;
+}
+/* Tighten kid input sizing under Material — md-text-field replaces
+ * these for the most part, but the few raw <input>/<select> still on
+ * the page (lat/lon, ref-input) shouldn't be 48px tall. */
+body[data-ui-framework="material"] input[type="text"],
+body[data-ui-framework="material"] input[type="number"],
+body[data-ui-framework="material"] input[type="email"],
+body[data-ui-framework="material"] select {
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid #cac4d0;
+  min-height: 36px;
+  max-width: 100%;
+}
+body[data-ui-framework="material"].night input[type="text"],
+body[data-ui-framework="material"][data-ui-variant="dark"] input[type="text"],
+body[data-ui-framework="material"].night input[type="number"],
+body[data-ui-framework="material"][data-ui-variant="dark"] input[type="number"],
+body[data-ui-framework="material"].night input[type="email"],
+body[data-ui-framework="material"][data-ui-variant="dark"] input[type="email"],
+body[data-ui-framework="material"].night select,
+body[data-ui-framework="material"][data-ui-variant="dark"] select {
+  background: #36343b;
+  color: #e6e1e5;
+  border-color: #49454f;
+}
+/* Tighten native <button>s that escape Material enhancement. */
+body[data-ui-framework="material"] button:not(.icon-btn):not(.comfort-step) {
+  font-size: 14px;
+  padding: 8px 16px;
+  min-height: 36px;
+  font-weight: 500;
+  border-radius: 20px;
+}
+/* Force-install panel + ref list: flat Material card. */
+body[data-ui-framework="material"] .dev-install {
+  background: #f7f2fa;
+  border: 1px solid #cac4d0;
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 8px;
+}
+body[data-ui-framework="material"].night .dev-install,
+body[data-ui-framework="material"][data-ui-variant="dark"] .dev-install {
+  background: #2b2930;
+  border-color: #49454f;
+}
+body[data-ui-framework="material"] .ref-list {
+  max-height: 220px;
+  background: #ffffff;
+  border: 1px solid #cac4d0;
+  border-radius: 4px;
+  padding: 0;
+}
+body[data-ui-framework="material"].night .ref-list,
+body[data-ui-framework="material"][data-ui-variant="dark"] .ref-list {
+  background: #211f26;
+  border-color: #49454f;
+}
+body[data-ui-framework="material"] .ref-group {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #49454f;
+  padding: 8px 12px 4px;
+  opacity: 1;
+}
+body[data-ui-framework="material"].night .ref-group,
+body[data-ui-framework="material"][data-ui-variant="dark"] .ref-group {
+  color: #cac4d0;
+}
+body[data-ui-framework="material"] .ref-item {
+  padding: 8px 12px;
+  border-radius: 0;
+  min-height: 0;
+}
+body[data-ui-framework="material"] .ref-item:hover {
+  background: #f7f2fa;
+}
+body[data-ui-framework="material"].night .ref-item:hover,
+body[data-ui-framework="material"][data-ui-variant="dark"] .ref-item:hover {
+  background: #2b2930;
+}
+body[data-ui-framework="material"] .ref-item.selected {
+  background: #6750a4 !important;
+  color: #ffffff !important;
+}
+body[data-ui-framework="material"].night .ref-item.selected,
+body[data-ui-framework="material"][data-ui-variant="dark"] .ref-item.selected {
+  background: #d0bcff !important;
+  color: #381e72 !important;
+}
+body[data-ui-framework="material"] .ref-primary {
+  font-size: 14px;
+  font-weight: 500;
+}
+body[data-ui-framework="material"] .ref-secondary {
+  font-size: 12px;
+  color: #49454f;
+}
+body[data-ui-framework="material"].night .ref-secondary,
+body[data-ui-framework="material"][data-ui-variant="dark"] .ref-secondary {
+  color: #cac4d0;
+}
+body[data-ui-framework="material"] .ref-item.selected .ref-secondary {
+  color: rgba(255,255,255,0.85);
+}
+body[data-ui-framework="material"].night .ref-item.selected .ref-secondary,
+body[data-ui-framework="material"][data-ui-variant="dark"] .ref-item.selected .ref-secondary {
+  color: rgba(56,30,114,0.85);
+}
+/* .big-toggle → tight inline checkbox row. */
+body[data-ui-framework="material"] .big-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0;
+  margin: 6px 0;
+  min-height: 0;
+  font-size: 14px;
+  font-weight: normal;
+}
+/* Dashboard panes: flat Material surfaces, no kid sun/grass. */
+body[data-ui-framework="material"] .pane,
+body[data-ui-framework="material"] .weather-pane,
+body[data-ui-framework="material"] .outfit-pane,
+body[data-ui-framework="material"] .outfit-pane.evening {
+  background: #ffffff !important;
+  color: #1d1b20 !important;
+  border: 1px solid #cac4d0;
+  border-radius: 12px;
+}
+body[data-ui-framework="material"].night .pane,
+body[data-ui-framework="material"][data-ui-variant="dark"] .pane,
+body[data-ui-framework="material"].night .weather-pane,
+body[data-ui-framework="material"][data-ui-variant="dark"] .weather-pane,
+body[data-ui-framework="material"].night .outfit-pane,
+body[data-ui-framework="material"][data-ui-variant="dark"] .outfit-pane,
+body[data-ui-framework="material"].night .outfit-pane.evening,
+body[data-ui-framework="material"][data-ui-variant="dark"] .outfit-pane.evening {
+  background: #211f26 !important;
+  color: #e6e1e5 !important;
+  border-color: #49454f;
+}
+body[data-ui-framework="material"] .weather-hilo .hi { color: #ba1a1a; }
+body[data-ui-framework="material"] .weather-hilo .lo { color: #6750a4; }
+body[data-ui-framework="material"].night .weather-hilo .hi,
+body[data-ui-framework="material"][data-ui-variant="dark"] .weather-hilo .hi {
+  color: #ffb4ab;
+}
+body[data-ui-framework="material"].night .weather-hilo .lo,
+body[data-ui-framework="material"][data-ui-variant="dark"] .weather-hilo .lo {
+  color: #d0bcff;
+}
+body[data-ui-framework="material"] .piece {
+  background: #f7f2fa;
+  border: 1px solid #cac4d0;
+  border-radius: 8px;
+}
+body[data-ui-framework="material"].night .piece,
+body[data-ui-framework="material"][data-ui-variant="dark"] .piece {
+  background: #2b2930;
+  border-color: #49454f;
+}
+body[data-ui-framework="material"] .weather-temp,
+body[data-ui-framework="material"] .weather-day {
+  font-weight: 500;
+}
+body[data-ui-framework="material"] .rain-banner {
+  background: #eaddff;
+  color: #21005d;
+  border: 1px solid #d0bcff;
+  border-radius: 12px;
+  font-weight: 500;
+}
+body[data-ui-framework="material"].night .rain-banner,
+body[data-ui-framework="material"][data-ui-variant="dark"] .rain-banner {
+  background: #4f378b;
+  color: #eaddff;
+  border-color: #7c5cd0;
+}
+body[data-ui-framework="material"] .stale-banner {
+  background: #ffdad6;
+  color: #410002;
+  border: 1px solid #ffb4ab;
+  border-radius: 12px;
+  font-weight: 500;
+}
+body[data-ui-framework="material"].night .stale-banner,
+body[data-ui-framework="material"][data-ui-variant="dark"] .stale-banner {
+  background: #93000a;
+  color: #ffdad6;
+  border-color: #ba1a1a;
+}
+body[data-ui-framework="material"] .bottombar {
+  background: transparent;
+  color: #49454f;
+  border-top: 1px solid #cac4d0;
+}
+body[data-ui-framework="material"].night .bottombar,
+body[data-ui-framework="material"][data-ui-variant="dark"] .bottombar {
+  color: #cac4d0;
+  border-top-color: #49454f;
 }
 
 /* Dashboard pages: lock to viewport, no scrollbars. */

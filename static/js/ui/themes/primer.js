@@ -151,6 +151,7 @@ function attachPrimer() {
       border: 1px solid #d0d7de;
       border-radius: 6px;
       min-height: 32px;
+      max-width: 100%;
       box-shadow: inset 0 1px 0 rgba(208,215,222,0.2);
     }
     body[data-ui-framework="primer"] input[type="text"]:focus,
