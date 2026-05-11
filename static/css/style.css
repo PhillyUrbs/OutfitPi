@@ -147,6 +147,41 @@ body.night fluent-text-field::part(control) {
   color: #ffffff;
   background: transparent;
 }
+/* fluent-select: dark surface for both the trigger button and the
+ * popup listbox; force opening downward (Fluent's default position
+ * picks "above" when the trigger is in the lower half of the
+ * viewport, which on a kiosk feels backwards). */
+body.night fluent-select {
+  --neutralFillStealthRest: #2b2930;
+  --neutralFillStealthHover: #36343b;
+  --neutralFillStealthActive: #211f26;
+  --neutralFillRest: #2b2930;
+  --neutralFillHover: #36343b;
+  --neutralLayerFloating: #2b2930;
+  color: #ffffff;
+}
+body.night fluent-select::part(control) {
+  background: #2b2930;
+  color: #ffffff;
+  border-color: rgba(255,255,255,0.3);
+}
+body.night fluent-select::part(listbox) {
+  background: #2b2930;
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+body.night fluent-option {
+  background: #2b2930;
+  color: #ffffff;
+  --neutralFillStealthRest: transparent;
+  --neutralFillStealthHover: #3a3842;
+  --neutralFillStealthActive: #4a4852;
+}
+body.night fluent-option:hover,
+body.night fluent-option[aria-selected="true"] {
+  background: #3a3842;
+  color: #ffffff;
+}
 body.night fluent-radio::part(label),
 body.night fluent-switch::part(label),
 body.night fluent-option::part(content),

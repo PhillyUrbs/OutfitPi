@@ -123,6 +123,11 @@ const fluent = {
   createSelect({ options = [], value = '', onChange, ariaLabel } = {}) {
     ensureThemeStyles();
     const sel = document.createElement('fluent-select');
+    // Force the listbox to drop downward — Fluent's auto-positioning
+    // flips to "above" when the trigger sits in the lower half of the
+    // viewport, which is confusing on a kiosk where every dropdown
+    // ends up flying upward.
+    sel.setAttribute('position', 'below');
     if (ariaLabel) sel.setAttribute('aria-label', ariaLabel);
     for (const opt of options) {
       const o = document.createElement('fluent-option');
