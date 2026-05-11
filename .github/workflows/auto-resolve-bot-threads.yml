@@ -20,11 +20,6 @@ jobs:
       (github.event_name == 'check_suite' && github.event.check_suite.conclusion == 'success')
     steps:
       - name: Resolve threads from automated bots
-        # Advisory only. The mutation can fail with "Resource not
-        # accessible by integration" when the workflow runs from a
-        # check_suite event and lacks the elevated PR-write scope; we
-        # don't want that to block merges, so swallow non-zero exits.
-        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Bots whose unresolved comments shouldn't block merges. They're

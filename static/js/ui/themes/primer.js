@@ -4,7 +4,6 @@
 // / data-dark-theme on <body>.
 import nativeTheme from './native.js';
 
-const PRIMER_VERSION = '21.1.1';
 // Vendored locally to avoid kiosk dependency on cdnjs (and the
 // occasional slow load that hung Playwright reload tests).
 const PRIMER_CSS = `/static/vendor/primer/primer.min.css`;

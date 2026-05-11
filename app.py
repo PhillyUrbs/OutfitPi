@@ -115,7 +115,11 @@ def _load_or_create_secret_key(cfg_path: Path) -> str:
             os.chmod(key_path, 0o600)
         return new_key
     except OSError as exc:
-        logger.warning("Could not persist secret key (%s); using ephemeral", exc)
+        # Sanitize the error message before logging — OSError repr can
+        # contain a path supplied via env var, so strip newlines to
+        # prevent log-injection.
+        safe_msg = str(exc).replace("\r", "").replace("\n", "")
+        logger.warning("Could not persist secret key (%s); using ephemeral", safe_msg)
         return secrets.token_hex(32)
 
 
@@ -379,11 +383,13 @@ def create_app(config_path: Path | None = None) -> Flask:
         Playwright.
         """
         body = request.get_json(silent=True) or {}
-        tag = str(body.get("tag") or "trace")[:40]
-        tag = tag.replace("\r", "").replace("\n", "")
-        data = body.get("data")
-        safe_tag = tag.replace("\r", "").replace("\n", "")
-        safe_data = str(data).replace("\r", "").replace("\n", "")
+        # Sanitize at point-of-use: the tag and data come from the
+        # browser and could contain newlines that would forge fake log
+        # lines. Strip CR/LF before they ever reach the logger.
+        raw_tag = str(body.get("tag") or "trace")[:40]
+        raw_data = str(body.get("data"))[:1000]
+        safe_tag = raw_tag.replace("\r", "").replace("\n", "")
+        safe_data = raw_data.replace("\r", "").replace("\n", "")
         logger.info("CLIENT-TRACE [%s] %s", safe_tag, safe_data)
         return jsonify({"ok": True})
 
@@ -552,7 +558,13 @@ def create_app(config_path: Path | None = None) -> Flask:
             loc = get_location(cfg, force_refresh=True)
         except LocationError as exc:
             _capture_exc(exc, route="/api/location/redetect")
-            return jsonify({"error": _safe_error(exc)}), 502
+            # Don't echo the raw exception detail to the client — that
+            # could expose internal endpoints / stack details. Match the
+            # location error envelope used by /api/dashboard.
+            return jsonify({
+                "error": "location_error",
+                "detail": _safe_error(exc),
+            }), 502
         return jsonify(
             {
                 "latitude": loc.latitude,
